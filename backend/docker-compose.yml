@@ -1,0 +1,29 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: kapida
+      POSTGRES_PASSWORD: kapida
+      POSTGRES_DB: kapida_dev
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: .
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USER: kapida
+      DATABASE_PASSWORD: kapida
+      DATABASE_NAME: kapida_dev
+
+volumes:
+  db-data:
