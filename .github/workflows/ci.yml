@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  quality-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.24.5
+
+      - name: Install backend dependencies
+        run: npm install --no-audit --no-fund
+        working-directory: backend
+
+      - name: Lint backend
+        run: npm run lint
+        working-directory: backend
+
+      - name: Build backend
+        run: npm run build
+        working-directory: backend
+
+      - name: Install website dependencies
+        run: npm install --no-audit --no-fund
+        working-directory: website
+
+      - name: Lint website
+        run: npm run lint
+        working-directory: website
+
+      - name: Build website
+        run: npm run build
+        working-directory: website
+
+      - name: Install mobile dependencies
+        run: flutter pub get
+        working-directory: mobile
+
+      - name: Analyze mobile
+        run: flutter analyze
+        working-directory: mobile
+
+      - name: Build mobile
+        run: flutter build apk --debug
+        working-directory: mobile

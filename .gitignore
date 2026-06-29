@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+coverage/
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool/
+*.log
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+.dart_tool/
+.packages
+.pub-cache/
+
+# Generated files
+*.tsbuildinfo
