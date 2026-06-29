@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'features/startup/startup_screen.dart';
+
 class App extends StatelessWidget {
   const App({super.key});
 
@@ -8,7 +10,10 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     final router = GoRouter(
       routes: [
-        // Feature routes will be added here.
+        GoRoute(
+          path: '/',
+          builder: (context, state) => const StartupScreen(),
+        ),
       ],
     );
 
