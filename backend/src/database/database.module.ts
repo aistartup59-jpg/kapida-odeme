@@ -11,7 +11,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         username: process.env.DATABASE_USER || 'kapida',
         password: process.env.DATABASE_PASSWORD || 'kapida',
         database: process.env.DATABASE_NAME || 'kapida_dev',
-        entities: [],
+        autoLoadEntities: true,
         synchronize: false,
       }),
     }),
