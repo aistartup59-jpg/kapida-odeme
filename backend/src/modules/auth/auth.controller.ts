@@ -21,7 +21,7 @@ export class AuthController {
 
   @Post('merchant/login')
   loginMerchant(@Body() payload: MerchantLoginDto) {
-    return this.authService.loginMerchant();
+    return this.authService.loginMerchant(payload);
   }
 
   @Post('refresh')

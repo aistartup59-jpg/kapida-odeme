@@ -1,10 +1,13 @@
-import { ConflictException, Injectable, BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomBytes } from 'crypto';
+import { JwtService } from '@nestjs/jwt';
 
 import { PasswordHashingService } from './password-hashing.service';
 import { Merchant } from './entities/merchant.entity';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
+import { MerchantLoginDto } from './dto/merchant-login.dto';
 
 @Injectable()
 export class AuthService {
@@ -12,6 +15,7 @@ export class AuthService {
     @InjectRepository(Merchant)
     private readonly merchantRepository: Repository<Merchant>,
     private readonly passwordHashingService: PasswordHashingService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async registerMerchant(payload: CreateMerchantDto): Promise<{ success: true }> {
@@ -61,9 +65,33 @@ export class AuthService {
     return { success: true };
   }
 
-  loginMerchant(): Promise<void> {
-    // Login logic to be implemented later.
-    return Promise.resolve();
+  async loginMerchant(payload: MerchantLoginDto): Promise<{ accessToken: string; refreshToken: string }> {
+    if (!payload.email?.trim() || !payload.password?.trim()) {
+      throw new BadRequestException('Email and password are required.');
+    }
+
+    const merchant = await this.merchantRepository.findOne({ where: { email: payload.email } });
+    if (!merchant || !merchant.passwordHash) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
+    const isPasswordValid = this.passwordHashingService.verifyPassword(payload.password, merchant.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
+    const refreshToken = randomBytes(32).toString('hex');
+    const refreshTokenHash = this.passwordHashingService.hashPassword(refreshToken);
+
+    merchant.refreshTokenHash = refreshTokenHash;
+    await this.merchantRepository.save(merchant);
+
+    const accessToken = this.jwtService.sign({
+      sub: merchant.id,
+      type: 'merchant',
+    });
+
+    return { accessToken, refreshToken };
   }
 
   refreshToken(): Promise<void> {

@@ -21,6 +21,9 @@ export class Merchant {
   @Column({ nullable: true })
   passwordHash?: string;
 
+  @Column({ nullable: true })
+  refreshTokenHash?: string;
+
   @Column({ default: false })
   isVerified: boolean;
 
