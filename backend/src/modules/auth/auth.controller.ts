@@ -16,7 +16,7 @@ export class AuthController {
 
   @Post('merchant/register')
   registerMerchant(@Body() payload: CreateMerchantDto) {
-    return this.authService.registerMerchant();
+    return this.authService.registerMerchant(payload);
   }
 
   @Post('merchant/login')

@@ -10,7 +10,13 @@ export class Merchant {
   email: string;
 
   @Column()
-  name: string;
+  businessName: string;
+
+  @Column()
+  ownerFullName: string;
+
+  @Column({ unique: true })
+  phoneNumber: string;
 
   @Column({ nullable: true })
   passwordHash?: string;
