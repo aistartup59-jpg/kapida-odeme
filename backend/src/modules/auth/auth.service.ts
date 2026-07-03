@@ -8,6 +8,7 @@ import { PasswordHashingService } from './password-hashing.service';
 import { Merchant } from './entities/merchant.entity';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { MerchantLoginDto } from './dto/merchant-login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Injectable()
 export class AuthService {
@@ -83,8 +84,9 @@ export class AuthService {
     const refreshToken = randomBytes(32).toString('hex');
     const refreshTokenHash = this.passwordHashingService.hashPassword(refreshToken);
 
-    merchant.refreshTokenHash = refreshTokenHash;
-    await this.merchantRepository.save(merchant);
+    const merchantWithLegacyRefreshToken = merchant as Merchant & { refreshTokenHash?: string };
+    merchantWithLegacyRefreshToken.refreshTokenHash = refreshTokenHash;
+    await this.merchantRepository.save(merchantWithLegacyRefreshToken);
 
     const accessToken = this.jwtService.sign({
       sub: merchant.id,
@@ -94,9 +96,34 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  refreshToken(): Promise<void> {
-    // Refresh token logic to be implemented later.
-    return Promise.resolve();
+  async refreshToken(payload: RefreshTokenDto): Promise<{ accessToken: string; refreshToken: string }> {
+    if (!payload?.refreshToken?.trim()) {
+      throw new BadRequestException('Refresh token is required.');
+    }
+
+    const candidates = await this.merchantRepository.find();
+
+    for (const merchant of candidates) {
+      const merchantWithLegacyRefreshToken = merchant as Merchant & { refreshTokenHash?: string };
+      if (!merchantWithLegacyRefreshToken.refreshTokenHash) continue;
+
+      const valid = this.passwordHashingService.verifyPassword(payload.refreshToken, merchantWithLegacyRefreshToken.refreshTokenHash);
+      if (!valid) continue;
+
+      // rotate refresh token
+      const newRefreshToken = randomBytes(32).toString('hex');
+      const newRefreshTokenHash = this.passwordHashingService.hashPassword(newRefreshToken);
+
+      const merchantWithLegacyRefreshTokenForRotation = merchant as Merchant & { refreshTokenHash?: string };
+      merchantWithLegacyRefreshTokenForRotation.refreshTokenHash = newRefreshTokenHash;
+      await this.merchantRepository.save(merchantWithLegacyRefreshTokenForRotation);
+
+      const accessToken = this.jwtService.sign({ sub: merchant.id, type: 'merchant' });
+
+      return { accessToken, refreshToken: newRefreshToken };
+    }
+
+    throw new UnauthorizedException('Invalid refresh token.');
   }
 
   logout(): Promise<void> {

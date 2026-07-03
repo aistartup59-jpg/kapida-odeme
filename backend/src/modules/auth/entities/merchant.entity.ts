@@ -1,5 +1,6 @@
 import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Employee } from './employee.entity';
+import { MerchantSession } from './merchant-session.entity';
 
 @Entity({ name: 'merchants' })
 export class Merchant {
@@ -21,14 +22,14 @@ export class Merchant {
   @Column({ nullable: true })
   passwordHash?: string;
 
-  @Column({ nullable: true })
-  refreshTokenHash?: string;
-
   @Column({ default: false })
   isVerified: boolean;
 
   @OneToMany(() => Employee, (employee) => employee.merchant, { cascade: true })
   employees: Employee[];
+
+  @OneToMany(() => MerchantSession, (session) => session.merchant, { cascade: true })
+  sessions: MerchantSession[];
 
   @CreateDateColumn()
   createdAt: Date;

@@ -12,12 +12,13 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Merchant } from './entities/merchant.entity';
 import { Employee } from './entities/employee.entity';
+import { MerchantSession } from './entities/merchant-session.entity';
 import { JwtStrategy } from './jwt.strategy';
 
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([Merchant, Employee]),
+    TypeOrmModule.forFeature([Merchant, Employee, MerchantSession]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

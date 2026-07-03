@@ -26,7 +26,7 @@ export class AuthController {
 
   @Post('refresh')
   refreshToken(@Body() payload: RefreshTokenDto) {
-    return this.authService.refreshToken();
+    return this.authService.refreshToken(payload);
   }
 
   @Post('logout')
