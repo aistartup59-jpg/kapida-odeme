@@ -6,6 +6,8 @@ import { JwtService } from '@nestjs/jwt';
 
 import { PasswordHashingService } from './password-hashing.service';
 import { Merchant } from './entities/merchant.entity';
+import { MerchantSession } from './entities/merchant-session.entity';
+import { JwtConfigService } from './jwt-config.service';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { MerchantLoginDto } from './dto/merchant-login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -15,8 +17,11 @@ export class AuthService {
   constructor(
     @InjectRepository(Merchant)
     private readonly merchantRepository: Repository<Merchant>,
+    @InjectRepository(MerchantSession)
+    private readonly merchantSessionRepository: Repository<MerchantSession>,
     private readonly passwordHashingService: PasswordHashingService,
     private readonly jwtService: JwtService,
+    private readonly jwtConfigService: JwtConfigService,
   ) {}
 
   async registerMerchant(payload: CreateMerchantDto): Promise<{ success: true }> {
@@ -83,10 +88,18 @@ export class AuthService {
 
     const refreshToken = randomBytes(32).toString('hex');
     const refreshTokenHash = this.passwordHashingService.hashPassword(refreshToken);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + this.getRefreshTokenExpiryMs());
 
-    const merchantWithLegacyRefreshToken = merchant as Merchant & { refreshTokenHash?: string };
-    merchantWithLegacyRefreshToken.refreshTokenHash = refreshTokenHash;
-    await this.merchantRepository.save(merchantWithLegacyRefreshToken);
+    const session = this.merchantSessionRepository.create({
+      merchantId: merchant.id,
+      refreshTokenHash,
+      createdAt: now,
+      lastUsedAt: now,
+      expiresAt,
+    });
+
+    await this.merchantSessionRepository.save(session);
 
     const accessToken = this.jwtService.sign({
       sub: merchant.id,
@@ -101,29 +114,48 @@ export class AuthService {
       throw new BadRequestException('Refresh token is required.');
     }
 
-    const candidates = await this.merchantRepository.find();
+    const sessions = await this.merchantSessionRepository.find();
 
-    for (const merchant of candidates) {
-      const merchantWithLegacyRefreshToken = merchant as Merchant & { refreshTokenHash?: string };
-      if (!merchantWithLegacyRefreshToken.refreshTokenHash) continue;
-
-      const valid = this.passwordHashingService.verifyPassword(payload.refreshToken, merchantWithLegacyRefreshToken.refreshTokenHash);
+    for (const session of sessions) {
+      const valid = this.passwordHashingService.verifyPassword(payload.refreshToken, session.refreshTokenHash);
       if (!valid) continue;
 
-      // rotate refresh token
-      const newRefreshToken = randomBytes(32).toString('hex');
-      const newRefreshTokenHash = this.passwordHashingService.hashPassword(newRefreshToken);
+      session.lastUsedAt = new Date();
+      await this.merchantSessionRepository.save(session);
 
-      const merchantWithLegacyRefreshTokenForRotation = merchant as Merchant & { refreshTokenHash?: string };
-      merchantWithLegacyRefreshTokenForRotation.refreshTokenHash = newRefreshTokenHash;
-      await this.merchantRepository.save(merchantWithLegacyRefreshTokenForRotation);
+      const accessToken = this.jwtService.sign({ sub: session.merchantId, type: 'merchant' });
 
-      const accessToken = this.jwtService.sign({ sub: merchant.id, type: 'merchant' });
-
-      return { accessToken, refreshToken: newRefreshToken };
+      return { accessToken, refreshToken: payload.refreshToken };
     }
 
     throw new UnauthorizedException('Invalid refresh token.');
+  }
+
+  private getRefreshTokenExpiryMs(): number {
+    const value = this.jwtConfigService.refreshTokenExpiresIn?.toLowerCase();
+
+    if (!value) {
+      return 7 * 24 * 60 * 60 * 1000;
+    }
+
+    const match = value.match(/^(\d+)([smhd])$/);
+    if (!match) {
+      return 7 * 24 * 60 * 60 * 1000;
+    }
+
+    const amount = Number(match[1]);
+    switch (match[2]) {
+      case 's':
+        return amount * 1000;
+      case 'm':
+        return amount * 60 * 1000;
+      case 'h':
+        return amount * 60 * 60 * 1000;
+      case 'd':
+        return amount * 24 * 60 * 60 * 1000;
+      default:
+        return 7 * 24 * 60 * 60 * 1000;
+    }
   }
 
   logout(): Promise<void> {
