@@ -115,17 +115,24 @@ export class AuthService {
     }
 
     const sessions = await this.merchantSessionRepository.find();
+    const now = new Date();
 
     for (const session of sessions) {
-      const valid = this.passwordHashingService.verifyPassword(payload.refreshToken, session.refreshTokenHash);
-      if (!valid) continue;
+      const isValidRefreshToken = this.passwordHashingService.verifyPassword(payload.refreshToken, session.refreshTokenHash);
+      if (!isValidRefreshToken) {
+        continue;
+      }
 
-      session.lastUsedAt = new Date();
+      const newRefreshToken = randomBytes(32).toString('hex');
+      const newRefreshTokenHash = this.passwordHashingService.hashPassword(newRefreshToken);
+
+      session.refreshTokenHash = newRefreshTokenHash;
+      session.lastUsedAt = now;
       await this.merchantSessionRepository.save(session);
 
       const accessToken = this.jwtService.sign({ sub: session.merchantId, type: 'merchant' });
 
-      return { accessToken, refreshToken: payload.refreshToken };
+      return { accessToken, refreshToken: newRefreshToken };
     }
 
     throw new UnauthorizedException('Invalid refresh token.');
