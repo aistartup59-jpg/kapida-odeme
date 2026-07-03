@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 
@@ -123,6 +123,10 @@ export class AuthService {
         continue;
       }
 
+      if (session.revokedAt) {
+        throw new UnauthorizedException('Invalid refresh token.');
+      }
+
       const newRefreshToken = randomBytes(32).toString('hex');
       const newRefreshTokenHash = this.passwordHashingService.hashPassword(newRefreshToken);
 
@@ -165,9 +169,27 @@ export class AuthService {
     }
   }
 
-  logout(): Promise<void> {
-    // Logout logic to be implemented later.
-    return Promise.resolve();
+  async logout(user?: { sub?: string; type?: string }): Promise<{ success: true }> {
+    if (!user?.sub || user.type !== 'merchant') {
+      throw new UnauthorizedException('Authentication required.');
+    }
+
+    const session = await this.merchantSessionRepository.findOne({
+      where: { merchantId: user.sub, revokedAt: IsNull() },
+      order: { lastUsedAt: 'DESC', createdAt: 'DESC' },
+    });
+
+    if (!session) {
+      throw new UnauthorizedException('Session is already revoked.');
+    }
+
+    const now = new Date();
+    session.revokedAt = now;
+    session.lastUsedAt = now;
+
+    await this.merchantSessionRepository.save(session);
+
+    return { success: true };
   }
 
   forgotPassword(): Promise<void> {

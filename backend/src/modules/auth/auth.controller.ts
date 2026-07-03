@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -9,6 +9,8 @@ import { MerchantLoginDto } from './dto/merchant-login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -30,8 +32,9 @@ export class AuthController {
   }
 
   @Post('logout')
-  logout() {
-    return this.authService.logout();
+  @UseGuards(JwtAuthGuard)
+  logout(@CurrentUser() user: { sub?: string; type?: string }) {
+    return this.authService.logout(user);
   }
 
   @Post('forgot-password')
