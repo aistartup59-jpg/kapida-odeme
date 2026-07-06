@@ -1,5 +1,6 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Merchant } from './merchant.entity';
+import { Role } from '../enums/role.enum';
 
 @Entity({ name: 'employees' })
 export class Employee {
@@ -24,6 +25,9 @@ export class Employee {
 
   @Column({ default: false })
   invitationAccepted: boolean;
+
+  @Column({ type: 'enum', enum: Role, default: Role.EMPLOYEE })
+  role: Role;
 
   @CreateDateColumn()
   createdAt: Date;
