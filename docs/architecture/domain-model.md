@@ -11,12 +11,16 @@ Employee
 - Can create and manage payment requests on behalf of the merchant.
 - Replaces the earlier courier concept in the approved domain model.
 
-Payment Request
+PaymentRequest
 - Represents an invoice-like request for payment.
-- Belongs to a merchant and is created by an employee or merchant-controlled flow.
+- Belongs to exactly one merchant.
+- May contain multiple Transactions.
+- Stores totalAmount and paidAmount.
+- Calculates remainingAmount dynamically.
 
 Transaction
-- Represents a settled payment event linked to a payment request.
+- Represents a payment event linked to a PaymentRequest.
+- May be part of a hybrid or partial payment flow.
 - Captures payment method, amount, status, and timestamps.
 
 Merchant Payment Provider
@@ -27,12 +31,26 @@ Merchant Payment Provider
 
 Merchant
 ├── Employees
-├── Payment Requests
+├── PaymentRequests
+├── Merchant Payment Providers
+└── (PaymentRequest relationships are defined below)
+
+PaymentRequest
 ├── Transactions
-└── Merchant Payment Providers
+└── Belongs to one Merchant
 
 Employee
-└── Payment Requests
+└── PaymentRequests
+
+## Approved payment states
+
+PaymentRequest status values:
+- PENDING
+- PARTIALLY_PAID
+- PAID
+- FAILED
+- EXPIRED
+- CANCELLED
 
 ## Terminology note
 
