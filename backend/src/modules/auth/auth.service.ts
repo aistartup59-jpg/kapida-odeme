@@ -372,6 +372,7 @@ export class AuthService {
 
     const session = this.merchantSessionRepository.create({
       merchantId: employee.merchantId,
+      employeeId: employee.id,
       refreshTokenHash,
       createdAt: now,
       lastUsedAt: now,
@@ -386,5 +387,80 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken };
+  }
+
+  async refreshEmployeeToken(
+    payload: RefreshTokenDto,
+    user?: { sub?: string; type?: string },
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    if (!payload?.refreshToken?.trim()) {
+      throw new BadRequestException('Refresh token is required.');
+    }
+
+    if (!user?.sub || user.type !== 'employee') {
+      throw new UnauthorizedException('Authentication required.');
+    }
+
+    const employee = await this.employeeRepository.findOne({ where: { id: user.sub } });
+    if (!employee || !employee.isActive || !employee.invitationAccepted) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
+    const now = new Date();
+    const sessions = await this.merchantSessionRepository.find({
+      where: { employeeId: employee.id, revokedAt: IsNull() },
+    });
+
+    for (const session of sessions) {
+      const isValidRefreshToken = this.passwordHashingService.verifyPassword(payload.refreshToken, session.refreshTokenHash);
+      if (!isValidRefreshToken) {
+        continue;
+      }
+
+      if (session.expiresAt < now) {
+        throw new UnauthorizedException('Invalid refresh token.');
+      }
+
+      const newRefreshToken = randomBytes(32).toString('hex');
+      const newRefreshTokenHash = this.passwordHashingService.hashPassword(newRefreshToken);
+
+      session.refreshTokenHash = newRefreshTokenHash;
+      session.lastUsedAt = now;
+      await this.merchantSessionRepository.save(session);
+
+      const accessToken = this.jwtService.sign({ sub: employee.id, type: 'employee' });
+
+      return { accessToken, refreshToken: newRefreshToken };
+    }
+
+    throw new UnauthorizedException('Invalid refresh token.');
+  }
+
+  async logoutEmployee(user?: { sub?: string; type?: string }): Promise<{ success: true }> {
+    if (!user?.sub || user.type !== 'employee') {
+      throw new UnauthorizedException('Authentication required.');
+    }
+
+    const employee = await this.employeeRepository.findOne({ where: { id: user.sub } });
+    if (!employee || !employee.isActive || !employee.invitationAccepted) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
+    const session = await this.merchantSessionRepository.findOne({
+      where: { employeeId: employee.id, revokedAt: IsNull() },
+      order: { lastUsedAt: 'DESC', createdAt: 'DESC' },
+    });
+
+    if (!session) {
+      throw new UnauthorizedException('Session is already revoked.');
+    }
+
+    const now = new Date();
+    session.revokedAt = now;
+    session.lastUsedAt = now;
+
+    await this.merchantSessionRepository.save(session);
+
+    return { success: true };
   }
 }

@@ -10,6 +10,9 @@ export class MerchantSession {
   @Column()
   merchantId: string;
 
+  @Column({ nullable: true })
+  employeeId?: string;
+
   @Column()
   refreshTokenHash: string;
 

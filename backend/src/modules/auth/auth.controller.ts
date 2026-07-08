@@ -74,4 +74,19 @@ export class AuthController {
   loginEmployee(@Body() payload: EmployeeLoginDto) {
     return this.authService.loginEmployee(payload);
   }
+
+  @Post('employee/refresh')
+  @UseGuards(JwtAuthGuard)
+  refreshEmployeeToken(
+    @Body() payload: RefreshTokenDto,
+    @CurrentUser() user: { sub?: string; type?: string },
+  ) {
+    return this.authService.refreshEmployeeToken(payload, user);
+  }
+
+  @Post('employee/logout')
+  @UseGuards(JwtAuthGuard)
+  logoutEmployee(@CurrentUser() user: { sub?: string; type?: string }) {
+    return this.authService.logoutEmployee(user);
+  }
 }
