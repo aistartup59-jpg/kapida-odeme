@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
@@ -7,10 +7,15 @@ import { JwtService } from '@nestjs/jwt';
 import { PasswordHashingService } from './password-hashing.service';
 import { Merchant } from './entities/merchant.entity';
 import { MerchantSession } from './entities/merchant-session.entity';
+import { Employee } from './entities/employee.entity';
 import { JwtConfigService } from './jwt-config.service';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { MerchantLoginDto } from './dto/merchant-login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { AcceptInvitationDto } from './dto/accept-invitation.dto';
+import { SetPasswordDto } from './dto/set-password.dto';
+import { Role } from './enums/role.enum';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +24,8 @@ export class AuthService {
     private readonly merchantRepository: Repository<Merchant>,
     @InjectRepository(MerchantSession)
     private readonly merchantSessionRepository: Repository<MerchantSession>,
+    @InjectRepository(Employee)
+    private readonly employeeRepository: Repository<Employee>,
     private readonly passwordHashingService: PasswordHashingService,
     private readonly jwtService: JwtService,
     private readonly jwtConfigService: JwtConfigService,
@@ -202,19 +209,140 @@ export class AuthService {
     return Promise.resolve();
   }
 
-  createEmployee(): Promise<void> {
-    // Employee creation logic to be implemented later.
-    return Promise.resolve();
+  async createEmployee(
+    payload: CreateEmployeeDto,
+    actingUser?: { sub?: string; type?: string; role?: string },
+  ): Promise<{ success: true; invitationToken: string; expiresAt: string; employeeId: string }> {
+    if (actingUser?.role !== Role.OWNER) {
+      throw new ForbiddenException('Only owners can create employees.');
+    }
+
+    if (!payload?.merchantId?.trim()) {
+      throw new BadRequestException('Merchant ID is required.');
+    }
+
+    if (!payload?.email?.trim()) {
+      throw new BadRequestException('Email is required.');
+    }
+
+    const merchant = await this.merchantRepository.findOne({ where: { id: payload.merchantId } });
+    if (!merchant) {
+      throw new BadRequestException('Merchant not found.');
+    }
+
+    const existingEmployee = await this.employeeRepository.findOne({ where: { email: payload.email } });
+    if (existingEmployee) {
+      throw new ConflictException('Email already exists.');
+    }
+
+    const invitationToken = randomBytes(32).toString('hex');
+    const invitationTokenHash = this.passwordHashingService.hashPassword(invitationToken);
+    const invitationExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    const employee = this.employeeRepository.create({
+      merchantId: merchant.id,
+      email: payload.email,
+      isActive: false,
+      invitationAccepted: false,
+      invitationTokenHash,
+      invitationExpiresAt,
+    });
+
+    await this.employeeRepository.save(employee);
+
+    return {
+      success: true,
+      invitationToken,
+      expiresAt: invitationExpiresAt.toISOString(),
+      employeeId: employee.id,
+    };
   }
 
-  acceptInvitation(): Promise<void> {
-    // Invitation acceptance logic to be implemented later.
-    return Promise.resolve();
+  async acceptInvitation(payload: AcceptInvitationDto): Promise<{ success: true }> {
+    if (!payload?.invitationToken?.trim()) {
+      throw new BadRequestException('Invitation token is required.');
+    }
+
+    const employee = await this.findEmployeeByInvitationToken(payload.invitationToken);
+    if (!employee) {
+      throw new UnauthorizedException('Invalid invitation token.');
+    }
+
+    if (employee.isActive) {
+      throw new BadRequestException('Invitation has already been used.');
+    }
+
+    if (employee.invitationAccepted) {
+      throw new BadRequestException('Invitation has already been consumed.');
+    }
+
+    if (employee.invitationExpiresAt && employee.invitationExpiresAt < new Date()) {
+      throw new BadRequestException('Invitation token has expired.');
+    }
+
+    employee.invitationAccepted = true;
+    await this.employeeRepository.save(employee);
+
+    return { success: true };
   }
 
-  setPassword(): Promise<void> {
-    // Employee password setup logic to be implemented later.
-    return Promise.resolve();
+  async setPassword(payload: SetPasswordDto): Promise<{ success: true }> {
+    if (!payload?.invitationToken?.trim()) {
+      throw new BadRequestException('Invitation token is required.');
+    }
+
+    if (!payload?.password?.trim()) {
+      throw new BadRequestException('Password is required.');
+    }
+
+    const employee = await this.findEmployeeByInvitationToken(payload.invitationToken);
+    if (!employee) {
+      throw new UnauthorizedException('Invalid invitation token.');
+    }
+
+    if (employee.isActive) {
+      throw new BadRequestException('Invitation has already been used.');
+    }
+
+    if (employee.invitationExpiresAt && employee.invitationExpiresAt < new Date()) {
+      throw new BadRequestException('Invitation token has expired.');
+    }
+
+    if (!employee.invitationAccepted) {
+      throw new BadRequestException('Invitation must be accepted before setting a password.');
+    }
+
+    employee.passwordHash = this.passwordHashingService.hashPassword(payload.password);
+    employee.isActive = true;
+    employee.invitationAccepted = true;
+    employee.invitationTokenHash = null;
+    employee.invitationExpiresAt = null;
+
+    await this.employeeRepository.save(employee);
+
+    return { success: true };
+  }
+
+  private async findEmployeeByInvitationToken(invitationToken: string): Promise<Employee | null> {
+    const employees = await this.employeeRepository.find();
+    const now = new Date();
+
+    for (const employee of employees) {
+      if (!employee.invitationTokenHash || employee.isActive) {
+        continue;
+      }
+
+      if (employee.invitationExpiresAt && employee.invitationExpiresAt < now) {
+        continue;
+      }
+
+      const isValidToken = this.passwordHashingService.verifyPassword(invitationToken, employee.invitationTokenHash);
+      if (isValidToken) {
+        return employee;
+      }
+    }
+
+    return null;
   }
 
   loginEmployee(): Promise<void> {

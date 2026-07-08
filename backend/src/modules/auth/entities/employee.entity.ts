@@ -20,6 +20,12 @@ export class Employee {
   @Column({ nullable: true })
   passwordHash?: string;
 
+  @Column({ nullable: true })
+  invitationTokenHash?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  invitationExpiresAt?: Date;
+
   @Column({ default: false })
   isActive: boolean;
 

@@ -10,7 +10,10 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { Roles } from './decorators/roles.decorator';
+import { Role } from './enums/role.enum';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -48,18 +51,23 @@ export class AuthController {
   }
 
   @Post('employee')
-  createEmployee(@Body() payload: CreateEmployeeDto) {
-    return this.authService.createEmployee();
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.OWNER)
+  createEmployee(
+    @Body() payload: CreateEmployeeDto,
+    @CurrentUser() user: { sub?: string; type?: string; role?: string },
+  ) {
+    return this.authService.createEmployee(payload, user);
   }
 
   @Post('employee/accept-invitation')
   acceptInvitation(@Body() payload: AcceptInvitationDto) {
-    return this.authService.acceptInvitation();
+    return this.authService.acceptInvitation(payload);
   }
 
   @Post('employee/set-password')
   setPassword(@Body() payload: SetPasswordDto) {
-    return this.authService.setPassword();
+    return this.authService.setPassword(payload);
   }
 
   @Post('employee/login')
