@@ -15,6 +15,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { SetPasswordDto } from './dto/set-password.dto';
+import { EmployeeLoginDto } from './dto/employee-login.dto';
 import { Role } from './enums/role.enum';
 
 @Injectable()
@@ -345,8 +346,45 @@ export class AuthService {
     return null;
   }
 
-  loginEmployee(): Promise<void> {
-    // Employee login logic to be implemented later.
-    return Promise.resolve();
+  async loginEmployee(payload: EmployeeLoginDto): Promise<{ accessToken: string; refreshToken: string }> {
+    if (!payload?.email?.trim() || !payload?.password?.trim()) {
+      throw new BadRequestException('Email and password are required.');
+    }
+
+    const employee = await this.employeeRepository.findOne({ where: { email: payload.email } });
+    if (!employee || !employee.passwordHash) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
+    if (!employee.isActive || !employee.invitationAccepted) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
+    const isPasswordValid = this.passwordHashingService.verifyPassword(payload.password, employee.passwordHash);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
+    const refreshToken = randomBytes(32).toString('hex');
+    const refreshTokenHash = this.passwordHashingService.hashPassword(refreshToken);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + this.getRefreshTokenExpiryMs());
+
+    const session = this.merchantSessionRepository.create({
+      merchantId: employee.merchantId,
+      refreshTokenHash,
+      createdAt: now,
+      lastUsedAt: now,
+      expiresAt,
+    });
+
+    await this.merchantSessionRepository.save(session);
+
+    const accessToken = this.jwtService.sign({
+      sub: employee.id,
+      type: 'employee',
+    });
+
+    return { accessToken, refreshToken };
   }
 }

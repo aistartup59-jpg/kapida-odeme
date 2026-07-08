@@ -72,6 +72,6 @@ export class AuthController {
 
   @Post('employee/login')
   loginEmployee(@Body() payload: EmployeeLoginDto) {
-    return this.authService.loginEmployee();
+    return this.authService.loginEmployee(payload);
   }
 }
