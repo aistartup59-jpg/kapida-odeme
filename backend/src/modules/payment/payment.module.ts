@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { PaymentRequest } from './entities/payment-request.entity';
 
 @Module({
-  imports: [],
+  imports: [TypeOrmModule.forFeature([PaymentRequest])],
   controllers: [],
   providers: [],
 })

@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Employee } from './employee.entity';
 import { MerchantSession } from './merchant-session.entity';
+import { PaymentRequest } from '../../payment/entities/payment-request.entity';
 
 @Entity({ name: 'merchants' })
 export class Merchant {
@@ -30,6 +31,9 @@ export class Merchant {
 
   @OneToMany(() => MerchantSession, (session) => session.merchant, { cascade: true })
   sessions: MerchantSession[];
+
+  @OneToMany(() => PaymentRequest, (paymentRequest) => paymentRequest.merchant, { cascade: true })
+  paymentRequests: PaymentRequest[];
 
   @CreateDateColumn()
   createdAt: Date;
