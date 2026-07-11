@@ -19,10 +19,14 @@ import {
 } from '../../interfaces/payment-provider.interface';
 import { ProviderRegistry } from '../../registry/provider.registry';
 import { ProviderType } from '../../enums/provider-type.enum';
+import { ParamPosClient } from './parampos.client';
 
 @Injectable()
 export class ParamPosAdapter implements PaymentProvider {
-  constructor(private readonly registry: ProviderRegistry) {
+  constructor(
+    private readonly registry: ProviderRegistry,
+    private readonly client: ParamPosClient,
+  ) {
     this.registry.register(ProviderType.PARAM_POS, this);
   }
 
