@@ -66,6 +66,69 @@ Kapıda Ödeme supports a merchant-centric payment model built around payment re
 - Merchant payment providers remain separate from employee-level data.
 - The backend remains platform-independent; Android/iOS differences belong only to the mobile application.
 
+### ADR-007: Payment Orchestration Architecture
+
+#### Purpose
+
+Kapıda Ödeme is a payment orchestration platform.
+
+It must never depend on a specific payment provider.
+
+#### Architecture
+
+```
+PaymentService
+      ↓
+PaymentEngine
+      ↓
+PaymentProviderFactory
+      ↓
+PaymentProvider Interface
+      ↓
+Provider Adapter
+      ↓
+Provider API
+```
+
+#### Rules
+
+Business logic must never reference:
+
+- ParamPOS
+- iyzico
+- PayTR
+- Sipay
+- or any specific provider.
+
+Business logic communicates only through the `PaymentProvider` interface.
+
+#### Merchant Configuration
+
+Each merchant selects their own provider.
+
+Merchant credentials belong to the merchant.
+
+#### Provider Responsibilities
+
+A provider implementation is responsible for:
+
+- `createPayment`
+- `generateBankQR`
+- `createPaymentLink`
+- `cancelPayment`
+- `refundPayment`
+- `getPaymentStatus`
+- `handleWebhook`
+
+#### Extensibility
+
+Adding a new provider must require:
+
+- one new adapter
+- provider registration
+
+No business logic changes.
+
 ## Current implementation status
 
 The backend currently contains scaffolded payment and transaction modules. This document captures the approved payment architecture without changing any implementation contracts.

@@ -237,3 +237,18 @@ Every development session follows this order:
 Never skip the build step.
 
 Never commit or push without explicit approval.
+
+# Payment Orchestration
+
+Kapıda Ödeme is a payment orchestration platform.
+
+Business logic must never depend on a specific payment provider.
+
+All payment providers must implement the PaymentProvider interface.
+
+Adding a new payment provider must require only:
+
+- one adapter
+- provider registration
+
+No business logic changes are allowed.
