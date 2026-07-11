@@ -178,6 +178,50 @@ If a requested feature conflicts with the architecture,
 
 stop and ask for clarification.
 
+# Core Product Features
+
+The following features define the product identity.
+
+They are mandatory and must never be removed or bypassed without explicit user approval.
+
+## Real Bank QR
+
+QR always means a real Bank QR (TR Karekod / EMV QR).
+
+Never replace it with a Payment Link QR.
+
+## Hybrid Payments
+
+A PaymentRequest may be completed using multiple Transactions.
+
+Examples:
+
+- QR + Cash
+- NFC + Cash
+- QR + NFC
+- Payment Link + Cash
+
+## Customer Secure Mode
+
+Customer Secure Mode is mandatory.
+
+Whenever customer authentication is required (for example NFC PIN),
+
+the application must enter Customer Secure Mode.
+
+Customer Secure Mode must:
+
+- Hide all employee information.
+- Hide all merchant management screens.
+- Hide order details.
+- Display only:
+  - payment amount
+  - secure PIN entry screen
+- Use a randomized numeric keypad every time.
+- Automatically return to Employee Mode after authentication.
+
+Customer Secure Mode must never be disabled without explicit user approval.
+
 # Development Workflow
 
 Every development session follows this order:
