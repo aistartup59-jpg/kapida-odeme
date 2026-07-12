@@ -2,8 +2,10 @@ import { BadRequestException, Injectable, NotImplementedException } from '@nestj
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { PaymentProvider } from '../../payment-provider/interfaces/payment-provider.interface';
 import { PaymentProviderFactory } from '../../payment-provider/factory/payment-provider.factory';
-import { ProviderType } from '../../payment-provider/enums/provider-type.enum';
+import { MerchantPaymentProvider } from '../../payment-provider/entities/merchant-payment-provider.entity';
+import { NoActiveProviderException } from './exceptions/no-active-provider.exception';
 import { PaymentRequest } from '../entities/payment-request.entity';
 import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
 import { PaymentStateMachineService } from '../state-machine/payment-state-machine.service';
@@ -24,6 +26,8 @@ export class PaymentEngineService implements PaymentEngine {
   constructor(
     @InjectRepository(PaymentRequest)
     private readonly paymentRequestRepository: Repository<PaymentRequest>,
+    @InjectRepository(MerchantPaymentProvider)
+    private readonly merchantPaymentProviderRepository: Repository<MerchantPaymentProvider>,
     private readonly providerFactory: PaymentProviderFactory,
     private readonly stateMachine: PaymentStateMachineService,
   ) {}
@@ -32,6 +36,8 @@ export class PaymentEngineService implements PaymentEngine {
     const initialState = PaymentLifecycleState.PENDING;
 
     this.validateInitialLifecycle(initialState);
+
+    const provider = await this.resolveActiveProvider(request.merchantId);
 
     const paymentRequest = this.paymentRequestRepository.create({
       merchantId: request.merchantId,
@@ -48,10 +54,28 @@ export class PaymentEngineService implements PaymentEngine {
 
     const saved = await this.paymentRequestRepository.save(paymentRequest);
 
-    // Resolves the active provider adapter; no provider method is invoked yet.
-    this.providerFactory.getProvider(ProviderType.PARAM_POS);
+    await provider.createPayment({
+      reference: saved.id,
+      amount: saved.totalAmount,
+      currency: saved.currency,
+      credentials: {},
+    });
 
     return { success: true, data: saved };
+  }
+
+  // Merchant configuration decides the provider; the engine only resolves it.
+  private async resolveActiveProvider(merchantId: string): Promise<PaymentProvider> {
+    const merchantProvider = await this.merchantPaymentProviderRepository.findOne({
+      where: { merchantId, isActive: true },
+      order: { priority: 'ASC' },
+    });
+
+    if (!merchantProvider) {
+      throw new NoActiveProviderException(merchantId);
+    }
+
+    return this.providerFactory.getProvider(merchantProvider.providerType);
   }
 
   // No prior persisted state exists at creation, so there is no real from->to transition to perform here.
