@@ -1,10 +1,11 @@
-import { BadRequestException, Injectable, NotImplementedException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, NotImplementedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { PaymentProvider } from '../../payment-provider/interfaces/payment-provider.interface';
 import { PaymentProviderFactory } from '../../payment-provider/factory/payment-provider.factory';
 import { MerchantPaymentProvider } from '../../payment-provider/entities/merchant-payment-provider.entity';
+import { TransactionEngineService } from '../../transaction/engine/transaction-engine.service';
 import { NoActiveProviderException } from './exceptions/no-active-provider.exception';
 import { PaymentRequest } from '../entities/payment-request.entity';
 import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
@@ -17,6 +18,7 @@ import {
   GetPaymentStatusEngineRequest,
   PaymentEngine,
   ProcessNfcEngineRequest,
+  RecordTransactionEngineRequest,
   RefundPaymentEngineRequest,
 } from './payment-engine.interface';
 import { PaymentEngineResult } from './payment-engine-result.interface';
@@ -30,6 +32,7 @@ export class PaymentEngineService implements PaymentEngine {
     private readonly merchantPaymentProviderRepository: Repository<MerchantPaymentProvider>,
     private readonly providerFactory: PaymentProviderFactory,
     private readonly stateMachine: PaymentStateMachineService,
+    private readonly transactionEngine: TransactionEngineService,
   ) {}
 
   async createPayment(request: CreatePaymentEngineRequest): Promise<PaymentEngineResult<PaymentRequest>> {
@@ -120,5 +123,27 @@ export class PaymentEngineService implements PaymentEngine {
 
   getPaymentStatus(_request: GetPaymentStatusEngineRequest): Promise<PaymentEngineResult> {
     throw new NotImplementedException('PaymentEngine.getPaymentStatus is not implemented yet.');
+  }
+
+  // Delegates the actual transaction bookkeeping (overpayment checks, lifecycle transitions) to TransactionEngine.
+  async recordTransaction(request: RecordTransactionEngineRequest): Promise<PaymentEngineResult<PaymentRequest>> {
+    await this.transactionEngine.createTransaction({
+      paymentRequestId: request.paymentRequestId,
+      amount: request.amount,
+      paymentMethod: request.paymentMethod,
+      providerReference: request.providerReference,
+    });
+
+    const paymentRequest = await this.paymentRequestRepository.findOne({ where: { id: request.paymentRequestId } });
+
+    if (!paymentRequest) {
+      throw new NotFoundException(`PaymentRequest ${request.paymentRequestId} not found.`);
+    }
+
+    return { success: true, data: paymentRequest };
+  }
+
+  getRemainingAmount(paymentRequestId: string): Promise<PaymentEngineResult<number>> {
+    return this.transactionEngine.calculateRemainingAmount(paymentRequestId);
   }
 }

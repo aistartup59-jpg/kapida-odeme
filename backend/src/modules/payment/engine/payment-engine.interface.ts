@@ -43,6 +43,12 @@ export interface RefundPaymentEngineRequest extends PaymentEngineRequest {
 
 export interface GetPaymentStatusEngineRequest extends PaymentEngineRequest {}
 
+export interface RecordTransactionEngineRequest extends PaymentEngineRequest {
+  amount: number;
+  paymentMethod: PaymentMethod;
+  providerReference?: string;
+}
+
 export interface PaymentEngine {
   createPayment(request: CreatePaymentEngineRequest): Promise<PaymentEngineResult<PaymentRequest>>;
   generateQr(request: GenerateQrEngineRequest): Promise<PaymentEngineResult>;
@@ -51,4 +57,6 @@ export interface PaymentEngine {
   cancelPayment(request: CancelPaymentEngineRequest): Promise<PaymentEngineResult>;
   refundPayment(request: RefundPaymentEngineRequest): Promise<PaymentEngineResult>;
   getPaymentStatus(request: GetPaymentStatusEngineRequest): Promise<PaymentEngineResult>;
+  recordTransaction(request: RecordTransactionEngineRequest): Promise<PaymentEngineResult<PaymentRequest>>;
+  getRemainingAmount(paymentRequestId: string): Promise<PaymentEngineResult<number>>;
 }

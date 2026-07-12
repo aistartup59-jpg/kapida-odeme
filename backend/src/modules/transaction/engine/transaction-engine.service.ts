@@ -6,6 +6,7 @@ import { PaymentRequest } from '../../payment/entities/payment-request.entity';
 import { PaymentLifecycleState } from '../../payment/enums/payment-lifecycle-state.enum';
 import { PaymentStateMachineService } from '../../payment/state-machine/payment-state-machine.service';
 import { Transaction } from '../entities/transaction.entity';
+import { OverpaymentException } from './exceptions/overpayment.exception';
 import { CreateTransactionEngineRequest, TransactionEngine } from './transaction-engine.interface';
 import { TransactionEngineResult } from './transaction-result.interface';
 
@@ -26,6 +27,17 @@ export class TransactionEngineService implements TransactionEngine {
       throw new NotFoundException(`PaymentRequest ${request.paymentRequestId} not found.`);
     }
 
+    if (request.amount <= 0) {
+      throw new BadRequestException('Transaction amount must be greater than 0.');
+    }
+
+    const currentPaid = await this.sumTransactionAmounts(paymentRequest.id);
+    const projectedPaid = currentPaid + request.amount;
+
+    if (projectedPaid > paymentRequest.totalAmount) {
+      throw new OverpaymentException(paymentRequest.id);
+    }
+
     const transaction = this.transactionRepository.create({
       paymentRequestId: paymentRequest.id,
       amount: request.amount,
@@ -36,10 +48,9 @@ export class TransactionEngineService implements TransactionEngine {
 
     const savedTransaction = await this.transactionRepository.save(transaction);
 
-    const totalPaid = await this.sumTransactionAmounts(paymentRequest.id);
-    const nextState = this.resolveLifecycleState(paymentRequest.totalAmount, totalPaid);
+    const nextState = this.resolveLifecycleState(paymentRequest.totalAmount, projectedPaid);
 
-    await this.applyLifecycleState(paymentRequest, nextState, totalPaid);
+    await this.applyLifecycleState(paymentRequest, nextState, projectedPaid);
 
     return { success: true, data: savedTransaction };
   }
