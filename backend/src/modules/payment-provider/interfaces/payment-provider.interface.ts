@@ -1,85 +1,76 @@
-export interface CreatePaymentRequest {
+import { ProviderRequest } from '../common/types/provider-request.interface';
+import { ProviderResponse } from '../common/types/provider-response.interface';
+
+export interface CreatePaymentRequest extends ProviderRequest {
   reference: string;
   amount: number;
   currency: string;
-  credentials: Record<string, string>;
 }
 
-export interface CreatePaymentResponse {
+export interface CreatePaymentResponse extends ProviderResponse {
   providerReference: string;
   status: string;
-  rawResponse?: Record<string, unknown>;
 }
 
-export interface GenerateBankQrRequest {
+export interface GenerateBankQrRequest extends ProviderRequest {
   reference: string;
   amount: number;
   currency: string;
-  credentials: Record<string, string>;
 }
 
-export interface GenerateBankQrResponse {
+export interface GenerateBankQrResponse extends ProviderResponse {
   qrData: string;
   expiresAt?: Date;
 }
 
-export interface CreatePaymentLinkRequest {
+export interface CreatePaymentLinkRequest extends ProviderRequest {
   reference: string;
   amount: number;
   currency: string;
-  credentials: Record<string, string>;
   expiresAt?: Date;
 }
 
-export interface CreatePaymentLinkResponse {
+export interface CreatePaymentLinkResponse extends ProviderResponse {
   url: string;
   expiresAt?: Date;
 }
 
-export interface CancelPaymentRequest {
+export interface CancelPaymentRequest extends ProviderRequest {
   providerReference: string;
-  credentials: Record<string, string>;
 }
 
-export interface CancelPaymentResponse {
+export interface CancelPaymentResponse extends ProviderResponse {
   success: boolean;
-  rawResponse?: Record<string, unknown>;
 }
 
-export interface RefundPaymentRequest {
+export interface RefundPaymentRequest extends ProviderRequest {
   providerReference: string;
   amount: number;
-  credentials: Record<string, string>;
 }
 
-export interface RefundPaymentResponse {
+export interface RefundPaymentResponse extends ProviderResponse {
   success: boolean;
   refundReference?: string;
-  rawResponse?: Record<string, unknown>;
 }
 
-export interface GetPaymentStatusRequest {
+export interface GetPaymentStatusRequest extends ProviderRequest {
   providerReference: string;
-  credentials: Record<string, string>;
 }
 
-export interface GetPaymentStatusResponse {
+export interface GetPaymentStatusResponse extends ProviderResponse {
   status: string;
   paidAmount?: number;
-  rawResponse?: Record<string, unknown>;
 }
 
-export interface HandleWebhookRequest {
+export interface HandleWebhookRequest extends ProviderRequest {
   payload: Record<string, unknown>;
   headers: Record<string, string>;
-  credentials: Record<string, string>;
 }
 
-export interface HandleWebhookResponse {
+export interface HandleWebhookResponse extends ProviderResponse {
   providerReference: string;
   status: string;
   paidAmount?: number;
-  rawResponse?: Record<string, unknown>;
 }
 
 export interface PaymentProvider {
