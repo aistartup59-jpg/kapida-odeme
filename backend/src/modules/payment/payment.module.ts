@@ -8,11 +8,12 @@ import { PaymentEngineService } from './engine/payment-engine.service';
 import { PaymentRequest } from './entities/payment-request.entity';
 import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
+import { PaymentStateMachineService } from './state-machine/payment-state-machine.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([PaymentRequest, Merchant, Employee]), PaymentProviderModule],
   controllers: [PaymentController],
-  providers: [PaymentService, PaymentEngineService],
-  exports: [PaymentEngineService],
+  providers: [PaymentService, PaymentEngineService, PaymentStateMachineService],
+  exports: [PaymentEngineService, PaymentStateMachineService],
 })
 export class PaymentModule {}
