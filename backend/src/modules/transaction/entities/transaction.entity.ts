@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { PaymentRequest } from '../../payment/entities/payment-request.entity';
 import { PaymentMethod } from '../../payment/enums/payment-method.enum';
-import { PaymentStatus } from '../../payment/enums/payment-status.enum';
+import { PaymentLifecycleState } from '../../payment/enums/payment-lifecycle-state.enum';
 
 @Entity({ name: 'transactions' })
 export class Transaction {
@@ -21,8 +21,8 @@ export class Transaction {
   @Column({ type: 'enum', enum: PaymentMethod, default: PaymentMethod.QR })
   paymentMethod: PaymentMethod;
 
-  @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
-  status: PaymentStatus;
+  @Column({ type: 'enum', enum: PaymentLifecycleState, default: PaymentLifecycleState.PENDING })
+  status: PaymentLifecycleState;
 
   @Column({ nullable: true })
   providerReference?: string;

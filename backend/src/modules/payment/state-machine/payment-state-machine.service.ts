@@ -1,33 +1,33 @@
 import { Injectable } from '@nestjs/common';
 
-import { PaymentState } from './payment-state.enum';
+import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
 import { PaymentTransition } from './payment-transition.interface';
 import { PaymentTransitionResult } from './payment-transition-result.interface';
 
-const ALLOWED_TRANSITIONS: Record<PaymentState, PaymentState[]> = {
-  [PaymentState.PENDING]: [
-    PaymentState.PARTIALLY_PAID,
-    PaymentState.PAID,
-    PaymentState.CANCELLED,
-    PaymentState.EXPIRED,
-    PaymentState.FAILED,
+const ALLOWED_TRANSITIONS: Record<PaymentLifecycleState, PaymentLifecycleState[]> = {
+  [PaymentLifecycleState.PENDING]: [
+    PaymentLifecycleState.PARTIALLY_PAID,
+    PaymentLifecycleState.PAID,
+    PaymentLifecycleState.CANCELLED,
+    PaymentLifecycleState.EXPIRED,
+    PaymentLifecycleState.FAILED,
   ],
-  [PaymentState.PARTIALLY_PAID]: [
-    PaymentState.PAID,
-    PaymentState.CANCELLED,
-    PaymentState.EXPIRED,
-    PaymentState.REFUNDED,
+  [PaymentLifecycleState.PARTIALLY_PAID]: [
+    PaymentLifecycleState.PAID,
+    PaymentLifecycleState.CANCELLED,
+    PaymentLifecycleState.EXPIRED,
+    PaymentLifecycleState.REFUNDED,
   ],
-  [PaymentState.PAID]: [PaymentState.REFUNDED],
-  [PaymentState.CANCELLED]: [],
-  [PaymentState.EXPIRED]: [],
-  [PaymentState.FAILED]: [],
-  [PaymentState.REFUNDED]: [],
+  [PaymentLifecycleState.PAID]: [PaymentLifecycleState.REFUNDED],
+  [PaymentLifecycleState.CANCELLED]: [],
+  [PaymentLifecycleState.EXPIRED]: [],
+  [PaymentLifecycleState.FAILED]: [],
+  [PaymentLifecycleState.REFUNDED]: [],
 };
 
 @Injectable()
 export class PaymentStateMachineService {
-  canTransition(from: PaymentState, to: PaymentState): boolean {
+  canTransition(from: PaymentLifecycleState, to: PaymentLifecycleState): boolean {
     return ALLOWED_TRANSITIONS[from]?.includes(to) ?? false;
   }
 

@@ -1,8 +1,9 @@
-export enum PaymentStatus {
+export enum PaymentLifecycleState {
   PENDING = 'PENDING',
   PARTIALLY_PAID = 'PARTIALLY_PAID',
   PAID = 'PAID',
-  FAILED = 'FAILED',
-  EXPIRED = 'EXPIRED',
   CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED',
+  FAILED = 'FAILED',
+  REFUNDED = 'REFUNDED',
 }

@@ -9,7 +9,7 @@ import { CreatePaymentRequestDto } from './dto/create-payment-request.dto';
 import { Currency } from './enums/currency.enum';
 import { DeliveryChannel } from './enums/delivery-channel.enum';
 import { PaymentMethod } from './enums/payment-method.enum';
-import { PaymentStatus } from './enums/payment-status.enum';
+import { PaymentLifecycleState } from './enums/payment-lifecycle-state.enum';
 
 @Injectable()
 export class PaymentService {
@@ -63,7 +63,7 @@ export class PaymentService {
       currency: this.normalizeCurrency(payload.currency),
       paymentMethod: this.normalizePaymentMethod(payload.paymentMethod),
       deliveryChannel: this.normalizeDeliveryChannel(payload.deliveryChannel),
-      status: PaymentStatus.PENDING,
+      status: PaymentLifecycleState.PENDING,
       description: payload.description?.trim() || undefined,
       expiresAt: this.normalizeExpiresAt(payload.expiresAt),
     });

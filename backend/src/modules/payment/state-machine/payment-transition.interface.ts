@@ -1,6 +1,6 @@
-import { PaymentState } from './payment-state.enum';
+import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
 
 export interface PaymentTransition {
-  from: PaymentState;
-  to: PaymentState;
+  from: PaymentLifecycleState;
+  to: PaymentLifecycleState;
 }

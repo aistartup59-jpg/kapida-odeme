@@ -14,7 +14,7 @@ import { Transaction } from '../../transaction/entities/transaction.entity';
 import { Currency } from '../enums/currency.enum';
 import { DeliveryChannel } from '../enums/delivery-channel.enum';
 import { PaymentMethod } from '../enums/payment-method.enum';
-import { PaymentStatus } from '../enums/payment-status.enum';
+import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
 
 @Entity({ name: 'payment_requests' })
 export class PaymentRequest {
@@ -50,8 +50,8 @@ export class PaymentRequest {
   @Column({ type: 'enum', enum: DeliveryChannel, default: DeliveryChannel.NONE })
   deliveryChannel: DeliveryChannel;
 
-  @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
-  status: PaymentStatus;
+  @Column({ type: 'enum', enum: PaymentLifecycleState, default: PaymentLifecycleState.PENDING })
+  status: PaymentLifecycleState;
 
   @Column({ nullable: true })
   description?: string;
