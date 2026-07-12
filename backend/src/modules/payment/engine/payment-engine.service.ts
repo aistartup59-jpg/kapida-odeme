@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { PaymentProviderFactory } from '../../payment-provider/factory/payment-provider.factory';
+import { ProviderType } from '../../payment-provider/enums/provider-type.enum';
 import { PaymentRequest } from '../entities/payment-request.entity';
 import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
 import { PaymentStateMachineService } from '../state-machine/payment-state-machine.service';
@@ -47,10 +48,13 @@ export class PaymentEngineService implements PaymentEngine {
 
     const saved = await this.paymentRequestRepository.save(paymentRequest);
 
+    // Resolves the active provider adapter; no provider method is invoked yet.
+    this.providerFactory.getProvider(ProviderType.PARAM_POS);
+
     return { success: true, data: saved };
   }
 
-  // No prior persisted state exists at creation, so this checks PENDING is live/non-terminal rather than a real from->to transition.
+  // No prior persisted state exists at creation, so there is no real from->to transition to perform here.
   private validateInitialLifecycle(state: PaymentLifecycleState): void {
     if (state !== PaymentLifecycleState.PENDING) {
       throw new BadRequestException('A new payment request must start from PaymentLifecycleState.PENDING.');
@@ -62,12 +66,6 @@ export class PaymentEngineService implements PaymentEngine {
 
     if (!hasOutgoingTransition) {
       throw new BadRequestException('PaymentLifecycleState.PENDING has no valid outgoing transitions.');
-    }
-
-    const toPaid = this.stateMachine.transition({ from: state, to: PaymentLifecycleState.PAID });
-
-    if (!toPaid.allowed) {
-      throw new BadRequestException('PaymentLifecycleState.PENDING cannot progress to PAID.');
     }
   }
 
