@@ -1,4 +1,4 @@
-import { Injectable, NotImplementedException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotImplementedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -28,6 +28,10 @@ export class PaymentEngineService implements PaymentEngine {
   ) {}
 
   async createPayment(request: CreatePaymentEngineRequest): Promise<PaymentEngineResult<PaymentRequest>> {
+    const initialState = PaymentLifecycleState.PENDING;
+
+    this.validateInitialLifecycle(initialState);
+
     const paymentRequest = this.paymentRequestRepository.create({
       merchantId: request.merchantId,
       employeeId: request.employeeId ?? null,
@@ -36,7 +40,7 @@ export class PaymentEngineService implements PaymentEngine {
       currency: request.currency,
       paymentMethod: request.paymentMethod,
       deliveryChannel: request.deliveryChannel,
-      status: PaymentLifecycleState.PENDING,
+      status: initialState,
       description: request.description,
       expiresAt: request.expiresAt,
     });
@@ -44,6 +48,27 @@ export class PaymentEngineService implements PaymentEngine {
     const saved = await this.paymentRequestRepository.save(paymentRequest);
 
     return { success: true, data: saved };
+  }
+
+  // No prior persisted state exists at creation, so this checks PENDING is live/non-terminal rather than a real from->to transition.
+  private validateInitialLifecycle(state: PaymentLifecycleState): void {
+    if (state !== PaymentLifecycleState.PENDING) {
+      throw new BadRequestException('A new payment request must start from PaymentLifecycleState.PENDING.');
+    }
+
+    const hasOutgoingTransition = Object.values(PaymentLifecycleState).some((candidate) =>
+      this.stateMachine.canTransition(state, candidate),
+    );
+
+    if (!hasOutgoingTransition) {
+      throw new BadRequestException('PaymentLifecycleState.PENDING has no valid outgoing transitions.');
+    }
+
+    const toPaid = this.stateMachine.transition({ from: state, to: PaymentLifecycleState.PAID });
+
+    if (!toPaid.allowed) {
+      throw new BadRequestException('PaymentLifecycleState.PENDING cannot progress to PAID.');
+    }
   }
 
   generateQr(_request: GenerateQrEngineRequest): Promise<PaymentEngineResult> {
