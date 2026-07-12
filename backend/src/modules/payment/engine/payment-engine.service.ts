@@ -1,6 +1,11 @@
 import { Injectable, NotImplementedException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 import { PaymentProviderFactory } from '../../payment-provider/factory/payment-provider.factory';
+import { PaymentRequest } from '../entities/payment-request.entity';
+import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
+import { PaymentStateMachineService } from '../state-machine/payment-state-machine.service';
 import {
   CancelPaymentEngineRequest,
   CreatePaymentEngineRequest,
@@ -15,10 +20,30 @@ import { PaymentEngineResult } from './payment-engine-result.interface';
 
 @Injectable()
 export class PaymentEngineService implements PaymentEngine {
-  constructor(private readonly providerFactory: PaymentProviderFactory) {}
+  constructor(
+    @InjectRepository(PaymentRequest)
+    private readonly paymentRequestRepository: Repository<PaymentRequest>,
+    private readonly providerFactory: PaymentProviderFactory,
+    private readonly stateMachine: PaymentStateMachineService,
+  ) {}
 
-  createPayment(_request: CreatePaymentEngineRequest): Promise<PaymentEngineResult> {
-    throw new NotImplementedException('PaymentEngine.createPayment is not implemented yet.');
+  async createPayment(request: CreatePaymentEngineRequest): Promise<PaymentEngineResult<PaymentRequest>> {
+    const paymentRequest = this.paymentRequestRepository.create({
+      merchantId: request.merchantId,
+      employeeId: request.employeeId ?? null,
+      totalAmount: request.totalAmount,
+      paidAmount: 0,
+      currency: request.currency,
+      paymentMethod: request.paymentMethod,
+      deliveryChannel: request.deliveryChannel,
+      status: PaymentLifecycleState.PENDING,
+      description: request.description,
+      expiresAt: request.expiresAt,
+    });
+
+    const saved = await this.paymentRequestRepository.save(paymentRequest);
+
+    return { success: true, data: saved };
   }
 
   generateQr(_request: GenerateQrEngineRequest): Promise<PaymentEngineResult> {

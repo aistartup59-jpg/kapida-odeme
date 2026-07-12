@@ -4,22 +4,21 @@ import { Repository } from 'typeorm';
 
 import { Employee } from '../auth/entities/employee.entity';
 import { Merchant } from '../auth/entities/merchant.entity';
+import { PaymentEngineService } from './engine/payment-engine.service';
 import { PaymentRequest } from './entities/payment-request.entity';
 import { CreatePaymentRequestDto } from './dto/create-payment-request.dto';
 import { Currency } from './enums/currency.enum';
 import { DeliveryChannel } from './enums/delivery-channel.enum';
 import { PaymentMethod } from './enums/payment-method.enum';
-import { PaymentLifecycleState } from './enums/payment-lifecycle-state.enum';
 
 @Injectable()
 export class PaymentService {
   constructor(
-    @InjectRepository(PaymentRequest)
-    private readonly paymentRequestRepository: Repository<PaymentRequest>,
     @InjectRepository(Merchant)
     private readonly merchantRepository: Repository<Merchant>,
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
+    private readonly paymentEngine: PaymentEngineService,
   ) {}
 
   async createPaymentRequest(payload: CreatePaymentRequestDto, user?: { sub?: string; type?: string }): Promise<PaymentRequest> {
@@ -53,22 +52,22 @@ export class PaymentService {
       throw new UnauthorizedException('Authentication required.');
     }
 
-    const paymentRequest = this.paymentRequestRepository.create({
-      merchant,
+    const result = await this.paymentEngine.createPayment({
       merchantId: merchant.id,
-      employee: employee ?? null,
       employeeId: employee?.id ?? null,
       totalAmount: payload.totalAmount,
-      paidAmount: 0,
       currency: this.normalizeCurrency(payload.currency),
       paymentMethod: this.normalizePaymentMethod(payload.paymentMethod),
       deliveryChannel: this.normalizeDeliveryChannel(payload.deliveryChannel),
-      status: PaymentLifecycleState.PENDING,
       description: payload.description?.trim() || undefined,
       expiresAt: this.normalizeExpiresAt(payload.expiresAt),
     });
 
-    return this.paymentRequestRepository.save(paymentRequest);
+    if (!result.success || !result.data) {
+      throw new BadRequestException(result.error?.message ?? 'Unable to create payment request.');
+    }
+
+    return result.data;
   }
 
   private normalizeCurrency(value?: string): Currency {
