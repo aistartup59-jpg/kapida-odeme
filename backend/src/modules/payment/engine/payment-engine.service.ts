@@ -37,7 +37,7 @@ export class PaymentEngineService implements PaymentEngine {
 
     this.validateInitialLifecycle(initialState);
 
-    const provider = await this.resolveActiveProvider(request.merchantId);
+    const { provider, credentialsReference } = await this.resolveActiveProvider(request.merchantId);
 
     const paymentRequest = this.paymentRequestRepository.create({
       merchantId: request.merchantId,
@@ -58,14 +58,16 @@ export class PaymentEngineService implements PaymentEngine {
       reference: saved.id,
       amount: saved.totalAmount,
       currency: saved.currency,
-      credentials: {},
+      credentials: { reference: credentialsReference },
     });
 
     return { success: true, data: saved };
   }
 
   // Merchant configuration decides the provider; the engine only resolves it.
-  private async resolveActiveProvider(merchantId: string): Promise<PaymentProvider> {
+  private async resolveActiveProvider(
+    merchantId: string,
+  ): Promise<{ provider: PaymentProvider; credentialsReference: string }> {
     const merchantProvider = await this.merchantPaymentProviderRepository.findOne({
       where: { merchantId, isActive: true },
       order: { priority: 'ASC' },
@@ -75,7 +77,10 @@ export class PaymentEngineService implements PaymentEngine {
       throw new NoActiveProviderException(merchantId);
     }
 
-    return this.providerFactory.getProvider(merchantProvider.providerType);
+    return {
+      provider: this.providerFactory.getProvider(merchantProvider.providerType),
+      credentialsReference: merchantProvider.credentialsReference,
+    };
   }
 
   // No prior persisted state exists at creation, so there is no real from->to transition to perform here.
