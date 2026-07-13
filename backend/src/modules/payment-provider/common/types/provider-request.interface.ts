@@ -1,4 +1,4 @@
-import { ProviderCredentials } from './provider-credentials.interface';
+import { ProviderCredentials } from '../../core/provider-credentials.model';
 
 export interface ProviderRequest {
   credentials: ProviderCredentials;
