@@ -49,8 +49,8 @@ export class TransactionEngineService implements TransactionEngine {
     const savedTransaction = await this.transactionRepository.save(transaction);
 
     const nextState = this.resolveLifecycleState(paymentRequest.totalAmount, projectedPaid);
-
-    await this.applyLifecycleState(paymentRequest, nextState, projectedPaid);
+    paymentRequest.paidAmount = projectedPaid;
+    await this.stateMachine.applyTransition(paymentRequest, nextState);
 
     return { success: true, data: savedTransaction };
   }
@@ -89,22 +89,5 @@ export class TransactionEngineService implements TransactionEngine {
     }
 
     return PaymentLifecycleState.PARTIALLY_PAID;
-  }
-
-  private async applyLifecycleState(
-    paymentRequest: PaymentRequest,
-    nextState: PaymentLifecycleState,
-    totalPaid: number,
-  ): Promise<void> {
-    if (nextState !== paymentRequest.status && !this.stateMachine.canTransition(paymentRequest.status, nextState)) {
-      throw new BadRequestException(
-        `Cannot transition payment request ${paymentRequest.id} from ${paymentRequest.status} to ${nextState}.`,
-      );
-    }
-
-    paymentRequest.status = nextState;
-    paymentRequest.paidAmount = totalPaid;
-
-    await this.paymentRequestRepository.save(paymentRequest);
   }
 }

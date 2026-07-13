@@ -1,5 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
+import { PaymentRequest } from '../entities/payment-request.entity';
 import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
 import { PaymentTransition } from './payment-transition.interface';
 import { PaymentTransitionResult } from './payment-transition-result.interface';
@@ -27,6 +30,11 @@ const ALLOWED_TRANSITIONS: Record<PaymentLifecycleState, PaymentLifecycleState[]
 
 @Injectable()
 export class PaymentStateMachineService {
+  constructor(
+    @InjectRepository(PaymentRequest)
+    private readonly paymentRequestRepository: Repository<PaymentRequest>,
+  ) {}
+
   canTransition(from: PaymentLifecycleState, to: PaymentLifecycleState): boolean {
     return ALLOWED_TRANSITIONS[from]?.includes(to) ?? false;
   }
@@ -41,5 +49,25 @@ export class PaymentStateMachineService {
       to,
       reason: allowed ? undefined : `Transition from ${from} to ${to} is not allowed.`,
     };
+  }
+
+  // The only place allowed to write PaymentRequest.status. Every status change
+  // must go through here so validation and persistence stay centralized.
+  async applyTransition(paymentRequest: PaymentRequest, to: PaymentLifecycleState): Promise<PaymentRequest> {
+    const from = paymentRequest.status;
+
+    if (to !== from) {
+      const result = this.transition({ from, to });
+
+      if (!result.allowed) {
+        throw new BadRequestException(
+          `Cannot transition payment request ${paymentRequest.id} from ${from} to ${to}.`,
+        );
+      }
+
+      paymentRequest.status = to;
+    }
+
+    return this.paymentRequestRepository.save(paymentRequest);
   }
 }

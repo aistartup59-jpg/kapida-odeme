@@ -278,3 +278,15 @@ Adding a new payment provider must require only:
 - provider registration
 
 No business logic changes are allowed.
+
+# Payment Lifecycle Ownership
+
+ADR-011: docs/adr/ADR-011.md
+
+Only PaymentStateMachineService may mutate PaymentRequest.status.
+
+No other service may assign the status property directly.
+
+Creating a new PaymentRequest with the initial PENDING state is allowed.
+
+All subsequent lifecycle changes must go through applyTransition().
