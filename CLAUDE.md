@@ -80,6 +80,20 @@ Keep changes limited to the requested sprint.
 
 Do not refactor unrelated code.
 
+# YAGNI
+
+ADR-009: docs/adr/ADR-009.md
+
+Do not expose API fields for features that do not yet exist.
+
+Do not add speculative fields or abstractions.
+
+New capabilities must be introduced only when the corresponding business capability is implemented.
+
+Keep the domain model minimal.
+
+Future requirements must not shape today's API.
+
 # Documentation
 
 Keep PROJECT_SPEC.md concise.

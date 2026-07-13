@@ -22,6 +22,6 @@ import { CredentialVaultService } from './security/credential-vault.service';
     CredentialEncryptionService,
     CredentialVaultService,
   ],
-  exports: [ProviderRegistry, PaymentProviderFactory],
+  exports: [ProviderRegistry, PaymentProviderFactory, CredentialVaultService],
 })
 export class PaymentProviderModule {}
