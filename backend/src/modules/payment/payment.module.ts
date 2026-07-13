@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { Employee } from '../auth/entities/employee.entity';
 import { Merchant } from '../auth/entities/merchant.entity';
-import { MerchantPaymentProvider } from '../payment-provider/entities/merchant-payment-provider.entity';
 import { PaymentProviderModule } from '../payment-provider/payment-provider.module';
 import { TransactionModule } from '../transaction/transaction.module';
 import { PaymentEngineService } from './engine/payment-engine.service';
@@ -14,7 +13,7 @@ import { PaymentStateMachineService } from './state-machine/payment-state-machin
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PaymentRequest, Merchant, Employee, MerchantPaymentProvider]),
+    TypeOrmModule.forFeature([PaymentRequest, Merchant, Employee]),
     PaymentProviderModule,
     TransactionModule,
   ],

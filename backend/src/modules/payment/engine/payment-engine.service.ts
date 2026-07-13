@@ -2,14 +2,15 @@ import { BadRequestException, Injectable, NotFoundException, NotImplementedExcep
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { ProviderException } from '../../payment-provider/common/exceptions/provider.exception';
 import { PaymentProvider } from '../../payment-provider/interfaces/payment-provider.interface';
-import { PaymentProviderFactory } from '../../payment-provider/factory/payment-provider.factory';
-import { MerchantPaymentProvider } from '../../payment-provider/entities/merchant-payment-provider.entity';
+import { ProviderResolverService } from '../../payment-provider/resolver/provider-resolver.service';
 import { TransactionEngineService } from '../../transaction/engine/transaction-engine.service';
-import { NoActiveProviderException } from './exceptions/no-active-provider.exception';
 import { PaymentRequest } from '../entities/payment-request.entity';
 import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
 import { PaymentStateMachineService } from '../state-machine/payment-state-machine.service';
+import { PaymentExecutionContext } from './models/payment-execution-context.model';
+import { PaymentExecutionError, PaymentExecutionResult } from './models/payment-execution-result.model';
 import {
   CancelPaymentEngineRequest,
   CreatePaymentEngineRequest,
@@ -28,9 +29,7 @@ export class PaymentEngineService implements PaymentEngine {
   constructor(
     @InjectRepository(PaymentRequest)
     private readonly paymentRequestRepository: Repository<PaymentRequest>,
-    @InjectRepository(MerchantPaymentProvider)
-    private readonly merchantPaymentProviderRepository: Repository<MerchantPaymentProvider>,
-    private readonly providerFactory: PaymentProviderFactory,
+    private readonly providerResolver: ProviderResolverService,
     private readonly stateMachine: PaymentStateMachineService,
     private readonly transactionEngine: TransactionEngineService,
   ) {}
@@ -40,7 +39,7 @@ export class PaymentEngineService implements PaymentEngine {
 
     this.validateInitialLifecycle(initialState);
 
-    const { provider, credentialsReference } = await this.resolveActiveProvider(request.merchantId);
+    const resolvedProvider = await this.providerResolver.resolveActiveProvider(request.merchantId);
 
     const paymentRequest = this.paymentRequestRepository.create({
       merchantId: request.merchantId,
@@ -57,33 +56,56 @@ export class PaymentEngineService implements PaymentEngine {
 
     const saved = await this.paymentRequestRepository.save(paymentRequest);
 
-    await provider.createPayment({
-      reference: saved.id,
+    const executionContext: PaymentExecutionContext = {
+      paymentRequestId: saved.id,
       amount: saved.totalAmount,
       currency: saved.currency,
-      credentials: { reference: credentialsReference },
-    });
+      credentialsReference: resolvedProvider.credentialsReference,
+    };
+
+    const executionResult = await this.executeWithProvider(resolvedProvider.provider, executionContext);
+
+    if (!executionResult.success) {
+      return { success: false, error: executionResult.error };
+    }
 
     return { success: true, data: saved };
   }
 
-  // Merchant configuration decides the provider; the engine only resolves it.
-  private async resolveActiveProvider(
-    merchantId: string,
-  ): Promise<{ provider: PaymentProvider; credentialsReference: string }> {
-    const merchantProvider = await this.merchantPaymentProviderRepository.findOne({
-      where: { merchantId, isActive: true },
-      order: { priority: 'ASC' },
-    });
+  // Orchestration only: calls the generic provider interface and normalizes whatever it
+  // returns or throws into a provider-agnostic result. No provider-specific logic here.
+  private async executeWithProvider(
+    provider: PaymentProvider,
+    context: PaymentExecutionContext,
+  ): Promise<PaymentExecutionResult> {
+    try {
+      const response = await provider.createPayment({
+        reference: context.paymentRequestId,
+        amount: context.amount,
+        currency: context.currency,
+        credentials: { reference: context.credentialsReference },
+      });
 
-    if (!merchantProvider) {
-      throw new NoActiveProviderException(merchantId);
+      return {
+        success: true,
+        providerReference: response.providerReference,
+        status: response.status,
+      };
+    } catch (error) {
+      return { success: false, error: this.toExecutionError(error) };
+    }
+  }
+
+  private toExecutionError(error: unknown): PaymentExecutionError {
+    if (error instanceof ProviderException) {
+      return { code: error.name, message: error.message, details: error.details };
     }
 
-    return {
-      provider: this.providerFactory.getProvider(merchantProvider.providerType),
-      credentialsReference: merchantProvider.credentialsReference,
-    };
+    if (error instanceof Error) {
+      return { code: 'PROVIDER_EXECUTION_ERROR', message: error.message };
+    }
+
+    return { code: 'PROVIDER_EXECUTION_ERROR', message: 'Unknown provider execution error.' };
   }
 
   // No prior persisted state exists at creation, so there is no real from->to transition to perform here.

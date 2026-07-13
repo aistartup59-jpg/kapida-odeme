@@ -7,6 +7,7 @@ import { ParamPosConfig } from './adapters/parampos/parampos.config';
 import { ParamPosClient } from './adapters/parampos/parampos.client';
 import { ParamPosAdapter } from './adapters/parampos/parampos.adapter';
 import { MerchantPaymentProvider } from './entities/merchant-payment-provider.entity';
+import { ProviderResolverService } from './resolver/provider-resolver.service';
 import { CredentialEncryptionService } from './security/credential-encryption.service';
 import { CredentialVaultService } from './security/credential-vault.service';
 
@@ -16,12 +17,13 @@ import { CredentialVaultService } from './security/credential-vault.service';
   providers: [
     ProviderRegistry,
     PaymentProviderFactory,
+    ProviderResolverService,
     ParamPosConfig,
     ParamPosClient,
     ParamPosAdapter,
     CredentialEncryptionService,
     CredentialVaultService,
   ],
-  exports: [ProviderRegistry, PaymentProviderFactory, CredentialVaultService],
+  exports: [ProviderRegistry, PaymentProviderFactory, ProviderResolverService, CredentialVaultService],
 })
 export class PaymentProviderModule {}

@@ -94,6 +94,18 @@ Keep the domain model minimal.
 
 Future requirements must not shape today's API.
 
+# Reuse Before Create
+
+ADR-010: docs/adr/ADR-010.md
+
+Rules:
+
+- Search the existing codebase before creating anything new.
+- Reuse existing services whenever possible.
+- Prefer refactoring over duplication.
+- Do not create parallel implementations.
+- If duplication appears necessary, stop and explain the architectural reason before writing code.
+
 # Documentation
 
 Keep PROJECT_SPEC.md concise.
