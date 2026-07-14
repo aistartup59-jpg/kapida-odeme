@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
 
+import { getRequiredCredentialEncryptionSecret } from './credential-encryption-secret';
+
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
 const KEY_LENGTH = 32;
@@ -16,7 +18,7 @@ export class CredentialEncryptionService {
   private readonly key: Buffer;
 
   constructor() {
-    const secret = process.env.CREDENTIAL_ENCRYPTION_SECRET || 'development-only-placeholder-secret';
+    const secret = getRequiredCredentialEncryptionSecret();
     this.key = scryptSync(secret, 'kapida-credential-vault', KEY_LENGTH);
   }
 
