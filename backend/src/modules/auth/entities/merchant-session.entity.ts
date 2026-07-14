@@ -7,10 +7,10 @@ export class MerchantSession {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column('uuid')
   merchantId: string;
 
-  @Column({ nullable: true })
+  @Column('uuid', { nullable: true })
   employeeId?: string;
 
   @Column()
