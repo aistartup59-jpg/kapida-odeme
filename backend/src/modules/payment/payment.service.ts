@@ -264,7 +264,11 @@ export class PaymentService {
     }
 
     const normalized = value.toUpperCase();
-    return Object.values(Currency).includes(normalized as Currency) ? (normalized as Currency) : Currency.TRY;
+    if (!Object.values(Currency).includes(normalized as Currency)) {
+      throw new BadRequestException(`Invalid currency: ${value}.`);
+    }
+
+    return normalized as Currency;
   }
 
   private normalizePaymentMethod(value?: string): PaymentMethod {
@@ -273,9 +277,11 @@ export class PaymentService {
     }
 
     const normalized = value.toUpperCase();
-    return Object.values(PaymentMethod).includes(normalized as PaymentMethod)
-      ? (normalized as PaymentMethod)
-      : PaymentMethod.QR;
+    if (!Object.values(PaymentMethod).includes(normalized as PaymentMethod)) {
+      throw new BadRequestException(`Invalid paymentMethod: ${value}.`);
+    }
+
+    return normalized as PaymentMethod;
   }
 
   private normalizeDeliveryChannel(value?: string): DeliveryChannel {
@@ -284,9 +290,11 @@ export class PaymentService {
     }
 
     const normalized = value.toUpperCase();
-    return Object.values(DeliveryChannel).includes(normalized as DeliveryChannel)
-      ? (normalized as DeliveryChannel)
-      : DeliveryChannel.NONE;
+    if (!Object.values(DeliveryChannel).includes(normalized as DeliveryChannel)) {
+      throw new BadRequestException(`Invalid deliveryChannel: ${value}.`);
+    }
+
+    return normalized as DeliveryChannel;
   }
 
   private normalizeExpiresAt(value?: Date | string): Date {

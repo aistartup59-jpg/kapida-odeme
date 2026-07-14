@@ -64,16 +64,25 @@ export class MerchantPaymentProviderService {
     const merchantId = await this.resolveMerchantId(user);
     const entity = await this.findOwnedProvider(merchantId, id);
 
+    let previousReference: string | undefined;
+
     if (dto?.credentials !== undefined) {
       this.validateCredentials(dto.credentials);
-      const previousReference = entity.credentialsReference;
+      previousReference = entity.credentialsReference;
       const nextReference = randomUUID();
       await this.credentialVault.save(nextReference, JSON.stringify(dto.credentials));
       entity.credentialsReference = nextReference;
+    }
+
+    // Only delete the old vault entry once the entity is durably pointing at the new one —
+    // deleting it first would leave the persisted row referencing missing credentials if
+    // this save fails.
+    const saved = await this.providerRepository.save(entity);
+
+    if (previousReference) {
       await this.credentialVault.delete(previousReference);
     }
 
-    const saved = await this.providerRepository.save(entity);
     return this.toResponse(saved);
   }
 
@@ -81,8 +90,10 @@ export class MerchantPaymentProviderService {
     const merchantId = await this.resolveMerchantId(user);
     const entity = await this.findOwnedProvider(merchantId, id);
 
-    await this.credentialVault.delete(entity.credentialsReference);
+    // Remove the DB row before deleting its credentials — deleting the vault entry first
+    // would leave a surviving row pointing at missing credentials if the remove fails.
     await this.providerRepository.remove(entity);
+    await this.credentialVault.delete(entity.credentialsReference);
   }
 
   async activate(user: AuthenticatedUser, id: string): Promise<MerchantPaymentProviderResponseDto> {
