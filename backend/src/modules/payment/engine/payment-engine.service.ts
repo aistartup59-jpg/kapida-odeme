@@ -169,16 +169,24 @@ export class PaymentEngineService implements PaymentEngine {
 
   // Pure lifecycle transition: paidAmount is left exactly as recorded, and no refund is
   // ever created here. Refunding collected amounts is a separate, future capability.
+  //
+  // The read and the transition must share a locked transaction with TransactionEngine's
+  // createTransaction: an unlocked read here could race a concurrent createTransaction call
+  // on the same PaymentRequest, then this method's save() (writing every field on its stale
+  // in-memory copy) would silently overwrite that transaction's already-committed paidAmount.
   async cancelPayment(request: CancelPaymentEngineRequest): Promise<PaymentEngineResult<PaymentRequest>> {
-    const paymentRequest = await this.paymentRequestRepository.findOne({
-      where: { id: request.paymentRequestId },
+    const updated = await this.paymentRequestRepository.manager.transaction(async (manager) => {
+      const paymentRequest = await manager.getRepository(PaymentRequest).findOne({
+        where: { id: request.paymentRequestId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!paymentRequest) {
+        throw new NotFoundException(`PaymentRequest ${request.paymentRequestId} not found.`);
+      }
+
+      return this.stateMachine.applyTransition(paymentRequest, PaymentLifecycleState.CANCELLED, manager);
     });
-
-    if (!paymentRequest) {
-      throw new NotFoundException(`PaymentRequest ${request.paymentRequestId} not found.`);
-    }
-
-    const updated = await this.stateMachine.applyTransition(paymentRequest, PaymentLifecycleState.CANCELLED);
 
     return { success: true, data: updated };
   }
