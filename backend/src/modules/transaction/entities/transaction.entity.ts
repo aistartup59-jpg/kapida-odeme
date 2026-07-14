@@ -2,6 +2,7 @@ import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGenerat
 import { PaymentRequest } from '../../payment/entities/payment-request.entity';
 import { PaymentMethod } from '../../payment/enums/payment-method.enum';
 import { PaymentLifecycleState } from '../../payment/enums/payment-lifecycle-state.enum';
+import { decimalTransformer } from '../../../shared/decimal.transformer';
 
 @Entity({ name: 'transactions' })
 export class Transaction {
@@ -15,7 +16,7 @@ export class Transaction {
   @Column('uuid')
   paymentRequestId: string;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
+  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0, transformer: decimalTransformer })
   amount: number;
 
   @Column({ type: 'enum', enum: PaymentMethod, default: PaymentMethod.QR })

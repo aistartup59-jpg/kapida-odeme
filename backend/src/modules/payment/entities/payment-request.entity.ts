@@ -11,6 +11,7 @@ import {
 import { Merchant } from '../../auth/entities/merchant.entity';
 import { Employee } from '../../auth/entities/employee.entity';
 import { Transaction } from '../../transaction/entities/transaction.entity';
+import { decimalTransformer } from '../../../shared/decimal.transformer';
 import { Currency } from '../enums/currency.enum';
 import { DeliveryChannel } from '../enums/delivery-channel.enum';
 import { PaymentMethod } from '../enums/payment-method.enum';
@@ -35,10 +36,10 @@ export class PaymentRequest {
   @Column('uuid', { nullable: true })
   employeeId?: string | null;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
+  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0, transformer: decimalTransformer })
   totalAmount: number;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
+  @Column({ type: 'decimal', precision: 12, scale: 2, default: 0, transformer: decimalTransformer })
   paidAmount: number;
 
   @Column({ type: 'enum', enum: Currency, default: Currency.TRY })
