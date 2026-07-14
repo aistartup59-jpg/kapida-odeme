@@ -8,8 +8,11 @@ import { PaymentEngineService } from './engine/payment-engine.service';
 import { PaymentRequest } from './entities/payment-request.entity';
 import { CreatePaymentRequestDto } from './dto/create-payment-request.dto';
 import { CreateTransactionRequestDto } from './dto/create-transaction-request.dto';
+import { ListPaymentRequestsQueryDto } from './dto/list-payment-requests-query.dto';
+import { PaymentRequestResponseDto } from './dto/payment-request-response.dto';
 import { Currency } from './enums/currency.enum';
 import { DeliveryChannel } from './enums/delivery-channel.enum';
+import { PaymentLifecycleState } from './enums/payment-lifecycle-state.enum';
 import { PaymentMethod } from './enums/payment-method.enum';
 
 interface ResolvedIdentity {
@@ -98,6 +101,106 @@ export class PaymentService {
     }
 
     return result.data;
+  }
+
+  // Merchant callers see every PaymentRequest owned by their merchant. Employee callers
+  // are further restricted to PaymentRequests they created themselves.
+  async getPaymentRequestById(
+    paymentRequestId: string,
+    user?: { sub?: string; type?: string },
+  ): Promise<PaymentRequestResponseDto> {
+    const { merchant, employee } = await this.resolveIdentity(user);
+
+    const paymentRequest = await this.paymentRequestRepository.findOne({
+      where: { id: paymentRequestId },
+      relations: ['transactions'],
+    });
+
+    if (!paymentRequest) {
+      throw new NotFoundException(`PaymentRequest ${paymentRequestId} not found.`);
+    }
+
+    if (paymentRequest.merchantId !== merchant.id) {
+      throw new UnauthorizedException('Payment request does not belong to the authenticated merchant.');
+    }
+
+    if (employee && paymentRequest.employeeId !== employee.id) {
+      throw new UnauthorizedException('Payment request does not belong to the authenticated employee.');
+    }
+
+    return this.toResponse(paymentRequest);
+  }
+
+  // Merchant callers see every PaymentRequest owned by their merchant. Employee callers
+  // are further restricted to PaymentRequests they created themselves.
+  async listPaymentRequests(
+    query: ListPaymentRequestsQueryDto,
+    user?: { sub?: string; type?: string },
+  ): Promise<PaymentRequestResponseDto[]> {
+    const { merchant, employee } = await this.resolveIdentity(user);
+    const status = this.normalizeStatusFilter(query?.status);
+
+    const paymentRequests = await this.paymentRequestRepository.find({
+      where: {
+        merchantId: merchant.id,
+        ...(employee ? { employeeId: employee.id } : {}),
+        ...(status ? { status } : {}),
+      },
+      relations: ['transactions'],
+    });
+
+    return Promise.all(paymentRequests.map((paymentRequest) => this.toResponse(paymentRequest)));
+  }
+
+  // remainingAmount is calculated via TransactionEngineService (through PaymentEngineService),
+  // never stored on PaymentRequest, per ADR-002.
+  private async toResponse(paymentRequest: PaymentRequest): Promise<PaymentRequestResponseDto> {
+    const remainingAmountResult = await this.paymentEngine.getRemainingAmount(paymentRequest.id);
+
+    if (!remainingAmountResult.success || remainingAmountResult.data === undefined) {
+      throw new BadRequestException(
+        remainingAmountResult.error?.message ?? 'Unable to calculate remaining amount.',
+      );
+    }
+
+    return {
+      id: paymentRequest.id,
+      merchantId: paymentRequest.merchantId,
+      employeeId: paymentRequest.employeeId ?? null,
+      totalAmount: paymentRequest.totalAmount,
+      paidAmount: paymentRequest.paidAmount,
+      remainingAmount: remainingAmountResult.data,
+      currency: paymentRequest.currency,
+      paymentMethod: paymentRequest.paymentMethod,
+      deliveryChannel: paymentRequest.deliveryChannel,
+      status: paymentRequest.status,
+      description: paymentRequest.description,
+      expiresAt: paymentRequest.expiresAt,
+      paidAt: paymentRequest.paidAt,
+      createdAt: paymentRequest.createdAt,
+      updatedAt: paymentRequest.updatedAt,
+      transactions: (paymentRequest.transactions ?? []).map((transaction) => ({
+        id: transaction.id,
+        amount: transaction.amount,
+        paymentMethod: transaction.paymentMethod,
+        status: transaction.status,
+        providerReference: transaction.providerReference,
+        createdAt: transaction.createdAt,
+      })),
+    };
+  }
+
+  private normalizeStatusFilter(value?: string): PaymentLifecycleState | undefined {
+    if (!value?.trim()) {
+      return undefined;
+    }
+
+    const normalized = value.toUpperCase();
+    if (!Object.values(PaymentLifecycleState).includes(normalized as PaymentLifecycleState)) {
+      throw new BadRequestException(`Invalid status filter: ${value}.`);
+    }
+
+    return normalized as PaymentLifecycleState;
   }
 
   private async resolveIdentity(user?: { sub?: string; type?: string }): Promise<ResolvedIdentity> {
