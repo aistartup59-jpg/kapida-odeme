@@ -290,3 +290,23 @@ No other service may assign the status property directly.
 Creating a new PaymentRequest with the initial PENDING state is allowed.
 
 All subsequent lifecycle changes must go through applyTransition().
+
+# Financial History Immutability
+
+ADR-012: docs/adr/ADR-012.md
+
+Financial records are append-only.
+
+Transactions are immutable once created. Never update or delete a Transaction.
+
+paidAmount is immutable once recorded. It only advances by recording new Transactions.
+
+Lifecycle transitions (applyTransition, per ADR-011) may change PaymentRequest.status only.
+
+Never modify paidAmount or any Transaction as part of a lifecycle transition.
+
+Cancellation is a lifecycle transition only. It must never zero, adjust, or otherwise touch paidAmount or Transaction history.
+
+Refunds must be represented as new financial events appended to the ledger, never by rewriting or deleting existing Transactions.
+
+This rule is provider neutral. It applies uniformly regardless of PaymentMethod or PaymentProvider.

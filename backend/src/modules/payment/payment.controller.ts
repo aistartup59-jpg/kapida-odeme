@@ -44,4 +44,12 @@ export class PaymentController {
   ) {
     return this.paymentService.recordTransaction(paymentRequestId, dto, user);
   }
+
+  @Post(':paymentRequestId/cancel')
+  cancelPaymentRequest(
+    @Param('paymentRequestId') paymentRequestId: string,
+    @CurrentUser() user: { sub?: string; type?: string },
+  ) {
+    return this.paymentService.cancelPaymentRequest(paymentRequestId, user);
+  }
 }

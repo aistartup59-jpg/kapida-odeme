@@ -131,6 +131,37 @@ export class PaymentService {
     return this.toResponse(paymentRequest);
   }
 
+  // Cancellation is a pure lifecycle transition: paidAmount is preserved exactly as
+  // recorded and no refund is created. Ownership scoping matches getPaymentRequestById.
+  async cancelPaymentRequest(
+    paymentRequestId: string,
+    user?: { sub?: string; type?: string },
+  ): Promise<PaymentRequestResponseDto> {
+    const { merchant, employee } = await this.resolveIdentity(user);
+
+    const paymentRequest = await this.paymentRequestRepository.findOne({ where: { id: paymentRequestId } });
+
+    if (!paymentRequest) {
+      throw new NotFoundException(`PaymentRequest ${paymentRequestId} not found.`);
+    }
+
+    if (paymentRequest.merchantId !== merchant.id) {
+      throw new UnauthorizedException('Payment request does not belong to the authenticated merchant.');
+    }
+
+    if (employee && paymentRequest.employeeId !== employee.id) {
+      throw new UnauthorizedException('Payment request does not belong to the authenticated employee.');
+    }
+
+    const result = await this.paymentEngine.cancelPayment({ paymentRequestId });
+
+    if (!result.success || !result.data) {
+      throw new BadRequestException(result.error?.message ?? 'Unable to cancel payment request.');
+    }
+
+    return this.toResponse(result.data);
+  }
+
   // Merchant callers see every PaymentRequest owned by their merchant. Employee callers
   // are further restricted to PaymentRequests they created themselves.
   async listPaymentRequests(

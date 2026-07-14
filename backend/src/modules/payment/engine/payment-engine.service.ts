@@ -164,8 +164,20 @@ export class PaymentEngineService implements PaymentEngine {
     throw new NotImplementedException('PaymentEngine.processNfc is not implemented yet.');
   }
 
-  cancelPayment(_request: CancelPaymentEngineRequest): Promise<PaymentEngineResult> {
-    throw new NotImplementedException('PaymentEngine.cancelPayment is not implemented yet.');
+  // Pure lifecycle transition: paidAmount is left exactly as recorded, and no refund is
+  // ever created here. Refunding collected amounts is a separate, future capability.
+  async cancelPayment(request: CancelPaymentEngineRequest): Promise<PaymentEngineResult<PaymentRequest>> {
+    const paymentRequest = await this.paymentRequestRepository.findOne({
+      where: { id: request.paymentRequestId },
+    });
+
+    if (!paymentRequest) {
+      throw new NotFoundException(`PaymentRequest ${request.paymentRequestId} not found.`);
+    }
+
+    const updated = await this.stateMachine.applyTransition(paymentRequest, PaymentLifecycleState.CANCELLED);
+
+    return { success: true, data: updated };
   }
 
   refundPayment(_request: RefundPaymentEngineRequest): Promise<PaymentEngineResult> {

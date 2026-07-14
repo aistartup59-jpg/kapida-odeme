@@ -54,7 +54,7 @@ export interface PaymentEngine {
   generateQr(request: GenerateQrEngineRequest): Promise<PaymentEngineResult>;
   createPaymentLink(request: CreatePaymentLinkEngineRequest): Promise<PaymentEngineResult>;
   processNfc(request: ProcessNfcEngineRequest): Promise<PaymentEngineResult>;
-  cancelPayment(request: CancelPaymentEngineRequest): Promise<PaymentEngineResult>;
+  cancelPayment(request: CancelPaymentEngineRequest): Promise<PaymentEngineResult<PaymentRequest>>;
   refundPayment(request: RefundPaymentEngineRequest): Promise<PaymentEngineResult>;
   getPaymentStatus(request: GetPaymentStatusEngineRequest): Promise<PaymentEngineResult>;
   recordTransaction(request: RecordTransactionEngineRequest): Promise<PaymentEngineResult<PaymentRequest>>;
