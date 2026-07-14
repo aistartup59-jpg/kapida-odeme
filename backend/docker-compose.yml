@@ -24,6 +24,7 @@ services:
       DATABASE_USER: kapida
       DATABASE_PASSWORD: kapida
       DATABASE_NAME: kapida_dev
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in the environment or a .env file next to docker-compose.yml}
 
 volumes:
   db-data:

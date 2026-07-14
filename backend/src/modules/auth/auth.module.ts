@@ -7,6 +7,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtConfigService } from './jwt-config.service';
+import { getRequiredJwtSecret } from './jwt-secret';
 import { PasswordHashingService } from './password-hashing.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
@@ -24,7 +25,7 @@ import { JwtStrategy } from './jwt.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('jwt.secret', 'change_me'),
+        secret: getRequiredJwtSecret(),
         signOptions: {
           expiresIn: configService.get<string>('jwt.accessTokenExpiresIn', '15m'),
         },

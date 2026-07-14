@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtConfig } from './interfaces/jwt-config.interface';
+import { getRequiredJwtSecret } from './jwt-secret';
 
 @Injectable()
 export class JwtConfigService {
   constructor(private readonly configService: ConfigService) {}
 
   get secret(): string {
-    return this.configService.get<string>('jwt.secret', 'change_me');
+    return getRequiredJwtSecret();
   }
 
   get accessTokenExpiresIn(): string {

@@ -8,4 +8,8 @@ async function bootstrap() {
   // No business logic in skeleton
 }
 
-bootstrap();
+bootstrap().catch((error) => {
+  // eslint-disable-next-line no-console
+  console.error(`Application failed to start: ${error instanceof Error ? error.message : error}`);
+  process.exit(1);
+});
