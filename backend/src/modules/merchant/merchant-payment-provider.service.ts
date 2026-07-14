@@ -100,9 +100,16 @@ export class MerchantPaymentProviderService {
     const merchantId = await this.resolveMerchantId(user);
     const entity = await this.findOwnedProvider(merchantId, id);
 
-    await this.providerRepository.deactivateAllForMerchant(merchantId);
-    entity.isActive = true;
-    const saved = await this.providerRepository.save(entity);
+    // Deactivating every other provider and activating this one must commit as a single
+    // unit: as two separate statements, concurrent activate() calls for different
+    // providers could each complete their deactivate-then-activate pair interleaved,
+    // leaving more than one provider isActive at once.
+    const saved = await this.merchantRepository.manager.transaction(async (manager) => {
+      await this.providerRepository.deactivateAllForMerchant(merchantId, manager);
+      entity.isActive = true;
+      return this.providerRepository.save(entity, manager);
+    });
+
     return this.toResponse(saved);
   }
 

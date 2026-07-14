@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 import { MerchantPaymentProvider } from '../../payment-provider/entities/merchant-payment-provider.entity';
 
@@ -15,8 +15,12 @@ export class MerchantPaymentProviderRepository {
     return this.repository.create(data);
   }
 
-  save(entity: MerchantPaymentProvider): Promise<MerchantPaymentProvider> {
-    return this.repository.save(entity);
+  // Optional `manager` lets a caller run this within its own DB transaction (e.g.
+  // MerchantPaymentProviderService.activate, which must commit deactivateAllForMerchant
+  // and this save together). Omitting it preserves the exact prior behavior.
+  save(entity: MerchantPaymentProvider, manager?: EntityManager): Promise<MerchantPaymentProvider> {
+    const repository = manager ? manager.getRepository(MerchantPaymentProvider) : this.repository;
+    return repository.save(entity);
   }
 
   findAllByMerchant(merchantId: string): Promise<MerchantPaymentProvider[]> {
@@ -31,7 +35,8 @@ export class MerchantPaymentProviderRepository {
     await this.repository.remove(entity);
   }
 
-  async deactivateAllForMerchant(merchantId: string): Promise<void> {
-    await this.repository.update({ merchantId }, { isActive: false });
+  async deactivateAllForMerchant(merchantId: string, manager?: EntityManager): Promise<void> {
+    const repository = manager ? manager.getRepository(MerchantPaymentProvider) : this.repository;
+    await repository.update({ merchantId }, { isActive: false });
   }
 }
