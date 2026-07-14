@@ -46,11 +46,17 @@ export class TransactionEngineService implements TransactionEngine {
       providerReference: request.providerReference,
     });
 
-    const savedTransaction = await this.transactionRepository.save(transaction);
-
     const nextState = this.resolveLifecycleState(paymentRequest.totalAmount, projectedPaid);
     paymentRequest.paidAmount = projectedPaid;
-    await this.stateMachine.applyTransition(paymentRequest, nextState);
+
+    // The Transaction insert and the PaymentRequest lifecycle update must commit as one
+    // unit: a crash between them would leave a permanent (ADR-012 append-only) Transaction
+    // row with no matching paidAmount/status update, diverging from the derived remainingAmount.
+    const savedTransaction = await this.transactionRepository.manager.transaction(async (manager) => {
+      const saved = await manager.getRepository(Transaction).save(transaction);
+      await this.stateMachine.applyTransition(paymentRequest, nextState, manager);
+      return saved;
+    });
 
     return { success: true, data: savedTransaction };
   }

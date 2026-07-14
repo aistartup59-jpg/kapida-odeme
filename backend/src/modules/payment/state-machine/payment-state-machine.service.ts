@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 import { PaymentRequest } from '../entities/payment-request.entity';
 import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
@@ -53,7 +53,16 @@ export class PaymentStateMachineService {
 
   // The only place allowed to write PaymentRequest.status. Every status change
   // must go through here so validation and persistence stay centralized.
-  async applyTransition(paymentRequest: PaymentRequest, to: PaymentLifecycleState): Promise<PaymentRequest> {
+  //
+  // The optional `manager` lets a caller that already opened a DB transaction (e.g.
+  // TransactionEngineService.createTransaction, which must commit its Transaction insert
+  // and this PaymentRequest update together) persist through that same transaction instead
+  // of this service's own connection. Omitting it preserves the exact prior behavior.
+  async applyTransition(
+    paymentRequest: PaymentRequest,
+    to: PaymentLifecycleState,
+    manager?: EntityManager,
+  ): Promise<PaymentRequest> {
     const from = paymentRequest.status;
 
     if (to !== from) {
@@ -68,6 +77,7 @@ export class PaymentStateMachineService {
       paymentRequest.status = to;
     }
 
-    return this.paymentRequestRepository.save(paymentRequest);
+    const repository = manager ? manager.getRepository(PaymentRequest) : this.paymentRequestRepository;
+    return repository.save(paymentRequest);
   }
 }
