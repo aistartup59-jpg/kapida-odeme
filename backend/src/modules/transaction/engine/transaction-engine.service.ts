@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 import { PaymentRequest } from '../../payment/entities/payment-request.entity';
 import { PaymentLifecycleState } from '../../payment/enums/payment-lifecycle-state.enum';
@@ -21,40 +21,45 @@ export class TransactionEngineService implements TransactionEngine {
   ) {}
 
   async createTransaction(request: CreateTransactionEngineRequest): Promise<TransactionEngineResult<Transaction>> {
-    const paymentRequest = await this.paymentRequestRepository.findOne({ where: { id: request.paymentRequestId } });
-
-    if (!paymentRequest) {
-      throw new NotFoundException(`PaymentRequest ${request.paymentRequestId} not found.`);
-    }
-
-    if (request.amount <= 0) {
-      throw new BadRequestException('Transaction amount must be greater than 0.');
-    }
-
-    const currentPaid = await this.sumTransactionAmounts(paymentRequest.id);
-    const projectedPaid = currentPaid + request.amount;
-
-    if (projectedPaid > paymentRequest.totalAmount) {
-      throw new OverpaymentException(paymentRequest.id);
-    }
-
-    const transaction = this.transactionRepository.create({
-      paymentRequestId: paymentRequest.id,
-      amount: request.amount,
-      paymentMethod: request.paymentMethod,
-      status: PaymentLifecycleState.PAID,
-      providerReference: request.providerReference,
-    });
-
-    const nextState = this.resolveLifecycleState(paymentRequest.totalAmount, projectedPaid);
-    paymentRequest.paidAmount = projectedPaid;
-
-    // The Transaction insert and the PaymentRequest lifecycle update must commit as one
-    // unit: a crash between them would leave a permanent (ADR-012 append-only) Transaction
-    // row with no matching paidAmount/status update, diverging from the derived remainingAmount.
+    // The read (current paid total), the overpayment check, and the write must all happen
+    // within one locked transaction: reading and checking outside the transaction let two
+    // concurrent calls for the same PaymentRequest each see the same stale paidAmount, pass
+    // the overpayment check independently, and together exceed totalAmount.
     const savedTransaction = await this.transactionRepository.manager.transaction(async (manager) => {
+      const paymentRequest = await manager.getRepository(PaymentRequest).findOne({
+        where: { id: request.paymentRequestId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!paymentRequest) {
+        throw new NotFoundException(`PaymentRequest ${request.paymentRequestId} not found.`);
+      }
+
+      if (request.amount <= 0) {
+        throw new BadRequestException('Transaction amount must be greater than 0.');
+      }
+
+      const currentPaid = await this.sumTransactionAmounts(paymentRequest.id, manager);
+      const projectedPaid = currentPaid + request.amount;
+
+      if (projectedPaid > paymentRequest.totalAmount) {
+        throw new OverpaymentException(paymentRequest.id);
+      }
+
+      const transaction = manager.getRepository(Transaction).create({
+        paymentRequestId: paymentRequest.id,
+        amount: request.amount,
+        paymentMethod: request.paymentMethod,
+        status: PaymentLifecycleState.PAID,
+        providerReference: request.providerReference,
+      });
+
       const saved = await manager.getRepository(Transaction).save(transaction);
+
+      const nextState = this.resolveLifecycleState(paymentRequest.totalAmount, projectedPaid);
+      paymentRequest.paidAmount = projectedPaid;
       await this.stateMachine.applyTransition(paymentRequest, nextState, manager);
+
       return saved;
     });
 
@@ -75,8 +80,9 @@ export class TransactionEngineService implements TransactionEngine {
   }
 
   // RemainingAmount/paidAmount are always derived from Transaction rows, never trusted as stored state.
-  private async sumTransactionAmounts(paymentRequestId: string): Promise<number> {
-    const raw = await this.transactionRepository
+  private async sumTransactionAmounts(paymentRequestId: string, manager?: EntityManager): Promise<number> {
+    const repository = manager ? manager.getRepository(Transaction) : this.transactionRepository;
+    const raw = await repository
       .createQueryBuilder('transaction')
       .select('COALESCE(SUM(transaction.amount), 0)', 'total')
       .where('transaction.paymentRequestId = :paymentRequestId', { paymentRequestId })
