@@ -79,6 +79,9 @@ export class PaymentEngineService implements PaymentEngine {
     );
 
     if (!executionResult.success) {
+      // The PaymentRequest row is already committed (line 62); if provider dispatch fails,
+      // it must not be left stuck in PENDING with no record of the failure.
+      await this.stateMachine.applyTransition(saved, PaymentLifecycleState.FAILED);
       return { success: false, error: executionResult.error };
     }
 
