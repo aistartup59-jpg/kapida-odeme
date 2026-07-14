@@ -8,6 +8,7 @@ import { ProviderResolverService } from '../../payment-provider/resolver/provide
 import { TransactionEngineService } from '../../transaction/engine/transaction-engine.service';
 import { PaymentRequest } from '../entities/payment-request.entity';
 import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
+import { PaymentMethod } from '../enums/payment-method.enum';
 import { PaymentStateMachineService } from '../state-machine/payment-state-machine.service';
 import { PaymentExecutionContext } from './models/payment-execution-context.model';
 import { PaymentExecutionError, PaymentExecutionResult } from './models/payment-execution-result.model';
@@ -39,7 +40,11 @@ export class PaymentEngineService implements PaymentEngine {
 
     this.validateInitialLifecycle(initialState);
 
-    const resolvedProvider = await this.providerResolver.resolveActiveProvider(request.merchantId);
+    const requiresProvider = this.requiresProviderExecution(request.paymentMethod);
+
+    const resolvedProvider = requiresProvider
+      ? await this.providerResolver.resolveActiveProvider(request.merchantId)
+      : null;
 
     const paymentRequest = this.paymentRequestRepository.create({
       merchantId: request.merchantId,
@@ -56,6 +61,10 @@ export class PaymentEngineService implements PaymentEngine {
 
     const saved = await this.paymentRequestRepository.save(paymentRequest);
 
+    if (!resolvedProvider) {
+      return { success: true, data: saved };
+    }
+
     const executionContext: PaymentExecutionContext = {
       paymentRequestId: saved.id,
       amount: saved.totalAmount,
@@ -63,7 +72,11 @@ export class PaymentEngineService implements PaymentEngine {
       credentialsReference: resolvedProvider.credentialsReference,
     };
 
-    const executionResult = await this.executeWithProvider(resolvedProvider.provider, executionContext);
+    const executionResult = await this.executeWithProvider(
+      resolvedProvider.provider,
+      request.paymentMethod,
+      executionContext,
+    );
 
     if (!executionResult.success) {
       return { success: false, error: executionResult.error };
@@ -72,25 +85,41 @@ export class PaymentEngineService implements PaymentEngine {
     return { success: true, data: saved };
   }
 
-  // Orchestration only: calls the generic provider interface and normalizes whatever it
-  // returns or throws into a provider-agnostic result. No provider-specific logic here.
+  // CASH has no provider involvement, and NFC completion is reported later through the
+  // transaction endpoint rather than triggered at PaymentRequest creation time.
+  private requiresProviderExecution(paymentMethod: PaymentMethod): boolean {
+    return paymentMethod === PaymentMethod.QR || paymentMethod === PaymentMethod.PAYMENT_LINK;
+  }
+
+  // Orchestration only: dispatches to the provider capability that matches the requested
+  // PaymentMethod (ADR-007) and normalizes whatever it returns or throws into a
+  // provider-agnostic result. No provider-specific logic here.
   private async executeWithProvider(
     provider: PaymentProvider,
+    paymentMethod: PaymentMethod,
     context: PaymentExecutionContext,
   ): Promise<PaymentExecutionResult> {
     try {
-      const response = await provider.createPayment({
-        reference: context.paymentRequestId,
-        amount: context.amount,
-        currency: context.currency,
-        credentials: { reference: context.credentialsReference },
-      });
-
-      return {
-        success: true,
-        providerReference: response.providerReference,
-        status: response.status,
-      };
+      switch (paymentMethod) {
+        case PaymentMethod.QR:
+          await provider.generateBankQR({
+            reference: context.paymentRequestId,
+            amount: context.amount,
+            currency: context.currency,
+            credentials: { reference: context.credentialsReference },
+          });
+          return { success: true };
+        case PaymentMethod.PAYMENT_LINK:
+          await provider.createPaymentLink({
+            reference: context.paymentRequestId,
+            amount: context.amount,
+            currency: context.currency,
+            credentials: { reference: context.credentialsReference },
+          });
+          return { success: true };
+        default:
+          return { success: true };
+      }
     } catch (error) {
       return { success: false, error: this.toExecutionError(error) };
     }

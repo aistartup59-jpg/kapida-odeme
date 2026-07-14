@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -7,9 +7,15 @@ import { Merchant } from '../auth/entities/merchant.entity';
 import { PaymentEngineService } from './engine/payment-engine.service';
 import { PaymentRequest } from './entities/payment-request.entity';
 import { CreatePaymentRequestDto } from './dto/create-payment-request.dto';
+import { CreateTransactionRequestDto } from './dto/create-transaction-request.dto';
 import { Currency } from './enums/currency.enum';
 import { DeliveryChannel } from './enums/delivery-channel.enum';
 import { PaymentMethod } from './enums/payment-method.enum';
+
+interface ResolvedIdentity {
+  merchant: Merchant;
+  employee: Employee | null;
+}
 
 @Injectable()
 export class PaymentService {
@@ -18,6 +24,8 @@ export class PaymentService {
     private readonly merchantRepository: Repository<Merchant>,
     @InjectRepository(Employee)
     private readonly employeeRepository: Repository<Employee>,
+    @InjectRepository(PaymentRequest)
+    private readonly paymentRequestRepository: Repository<PaymentRequest>,
     private readonly paymentEngine: PaymentEngineService,
   ) {}
 
@@ -30,27 +38,7 @@ export class PaymentService {
       throw new BadRequestException('paymentMethod is required.');
     }
 
-    if (!user?.sub) {
-      throw new UnauthorizedException('Authentication required.');
-    }
-
-    let merchant: Merchant | null = null;
-    let employee: Employee | null = null;
-
-    if (user.type === 'merchant') {
-      merchant = await this.merchantRepository.findOne({ where: { id: user.sub } });
-      if (!merchant) {
-        throw new UnauthorizedException('Merchant not found.');
-      }
-    } else if (user.type === 'employee') {
-      employee = await this.employeeRepository.findOne({ where: { id: user.sub }, relations: ['merchant'] });
-      if (!employee) {
-        throw new UnauthorizedException('Employee not found.');
-      }
-      merchant = employee.merchant;
-    } else {
-      throw new UnauthorizedException('Authentication required.');
-    }
+    const { merchant, employee } = await this.resolveIdentity(user);
 
     const result = await this.paymentEngine.createPayment({
       merchantId: merchant.id,
@@ -68,6 +56,72 @@ export class PaymentService {
     }
 
     return result.data;
+  }
+
+  // Reports a transaction (e.g. CASH or NFC completion) against an existing PaymentRequest.
+  // merchantId/employeeId are never accepted from the client; the caller's merchant must
+  // own the target PaymentRequest.
+  async recordTransaction(
+    paymentRequestId: string,
+    payload: CreateTransactionRequestDto,
+    user?: { sub?: string; type?: string },
+  ): Promise<PaymentRequest> {
+    if (!payload?.amount || payload.amount <= 0) {
+      throw new BadRequestException('amount must be greater than 0.');
+    }
+
+    if (!payload?.paymentMethod?.trim()) {
+      throw new BadRequestException('paymentMethod is required.');
+    }
+
+    const { merchant } = await this.resolveIdentity(user);
+
+    const paymentRequest = await this.paymentRequestRepository.findOne({ where: { id: paymentRequestId } });
+
+    if (!paymentRequest) {
+      throw new NotFoundException(`PaymentRequest ${paymentRequestId} not found.`);
+    }
+
+    if (paymentRequest.merchantId !== merchant.id) {
+      throw new UnauthorizedException('Payment request does not belong to the authenticated merchant.');
+    }
+
+    const result = await this.paymentEngine.recordTransaction({
+      paymentRequestId,
+      amount: payload.amount,
+      paymentMethod: this.normalizePaymentMethod(payload.paymentMethod),
+      providerReference: payload.providerReference?.trim() || undefined,
+    });
+
+    if (!result.success || !result.data) {
+      throw new BadRequestException(result.error?.message ?? 'Unable to record transaction.');
+    }
+
+    return result.data;
+  }
+
+  private async resolveIdentity(user?: { sub?: string; type?: string }): Promise<ResolvedIdentity> {
+    if (!user?.sub) {
+      throw new UnauthorizedException('Authentication required.');
+    }
+
+    if (user.type === 'merchant') {
+      const merchant = await this.merchantRepository.findOne({ where: { id: user.sub } });
+      if (!merchant) {
+        throw new UnauthorizedException('Merchant not found.');
+      }
+      return { merchant, employee: null };
+    }
+
+    if (user.type === 'employee') {
+      const employee = await this.employeeRepository.findOne({ where: { id: user.sub }, relations: ['merchant'] });
+      if (!employee) {
+        throw new UnauthorizedException('Employee not found.');
+      }
+      return { merchant: employee.merchant, employee };
+    }
+
+    throw new UnauthorizedException('Authentication required.');
   }
 
   private normalizeCurrency(value?: string): Currency {
