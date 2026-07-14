@@ -39,6 +39,24 @@ export class TransactionEngineService implements TransactionEngine {
         throw new BadRequestException('Transaction amount must be greater than 0.');
       }
 
+      if (request.providerReference) {
+        // Idempotent replay protection: a retried submission of the same reported payment
+        // event (e.g. a client retry after a lost response) must not be recorded twice.
+        const existing = await manager.getRepository(Transaction).findOne({
+          where: { paymentRequestId: paymentRequest.id, providerReference: request.providerReference },
+        });
+
+        if (existing) {
+          if (existing.amount !== request.amount || existing.paymentMethod !== request.paymentMethod) {
+            throw new BadRequestException(
+              `providerReference ${request.providerReference} was already recorded with a different amount or paymentMethod.`,
+            );
+          }
+
+          return existing;
+        }
+      }
+
       const currentPaid = await this.sumTransactionAmounts(paymentRequest.id, manager);
       const projectedPaid = currentPaid + request.amount;
 
