@@ -122,7 +122,7 @@ export class AuthService {
       throw new BadRequestException('Refresh token is required.');
     }
 
-    const sessions = await this.merchantSessionRepository.find();
+    const sessions = await this.merchantSessionRepository.find({ where: { employeeId: IsNull() } });
     const now = new Date();
 
     for (const session of sessions) {
@@ -132,6 +132,10 @@ export class AuthService {
       }
 
       if (session.revokedAt) {
+        throw new UnauthorizedException('Invalid refresh token.');
+      }
+
+      if (session.expiresAt < now) {
         throw new UnauthorizedException('Invalid refresh token.');
       }
 
