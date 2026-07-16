@@ -76,6 +76,9 @@ export class TransactionEngineService implements TransactionEngine {
 
       const nextState = this.resolveLifecycleState(paymentRequest.totalAmount, projectedPaid);
       paymentRequest.paidAmount = projectedPaid;
+      if (nextState === PaymentLifecycleState.PAID) {
+        paymentRequest.paidAt = new Date();
+      }
       await this.stateMachine.applyTransition(paymentRequest, nextState, manager);
 
       return saved;
