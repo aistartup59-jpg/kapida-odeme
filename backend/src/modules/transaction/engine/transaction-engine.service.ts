@@ -58,7 +58,11 @@ export class TransactionEngineService implements TransactionEngine {
       }
 
       const currentPaid = await this.sumTransactionAmounts(paymentRequest.id, manager);
-      const projectedPaid = currentPaid + request.amount;
+      // Rounded once to the money scale (matches the numeric(12,2) columns): a plain JS float
+      // addition of two exact 2-decimal values (e.g. 0.01 + 0.06) can land a fraction of a
+      // cent off (0.06999999999999999), which would wrongly fail the >= comparison in
+      // resolveLifecycleState and leave a fully paid request stuck at PARTIALLY_PAID forever.
+      const projectedPaid = Math.round((currentPaid + request.amount) * 100) / 100;
 
       if (projectedPaid > paymentRequest.totalAmount) {
         throw new OverpaymentException(paymentRequest.id);
