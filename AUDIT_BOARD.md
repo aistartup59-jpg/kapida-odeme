@@ -48,7 +48,7 @@ This workflow is permanent.
 **Last Updated:** 2026-07-17
 **Current Phase:** Phase 1 – Authentication Security
 **Current Module:** Auth
-**Current File:** `auth/guards/jwt-auth.guard.ts`
+**Current File:** `auth/guards/roles.guard.ts`
 
 **Current File Rule**
 
@@ -60,7 +60,7 @@ Current File becomes:
 
 Backend Audit Complete
 
-**Current Activity:** Queued — audit not yet started. Auditing is currently paused; resume only when explicitly instructed.
+**Current Activity:** Auditing in progress — resumed by explicit user instruction. `auth/guards/jwt-auth.guard.ts` fully audited, no issue found. Paused after this file pending user direction to continue.
 
 ---
 
@@ -69,16 +69,16 @@ Backend Audit Complete
 **Auditable Files: 65** (98 total backend source files, 33 Not Applicable)
 
 **🟢 Fully Audited**
-`⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜` 0 / 65 — 0%
+`🟢⬜⬜⬜⬜⬜⬜⬜⬜⬜` 1 / 65 — 2%
 
 **🟡 Review Started** (includes files already at 🟢)
-`🟡🟡⬜⬜⬜⬜⬜⬜⬜⬜` 15 / 65 — 23%
+`🟡🟡🟡⬜⬜⬜⬜⬜⬜⬜` 16 / 65 — 25%
 
 | Status | Meaning | Count |
 |---|---|---:|
-| 🟢 Fully Audited | Complete manual review finished | 0 / 65 |
+| 🟢 Fully Audited | Complete manual review finished | 1 / 65 |
 | 🟡 Review Started | Fix landed, file not yet fully reviewed | 15 / 65 |
-| ⬜ Remaining | Not started | 50 / 65 |
+| ⬜ Remaining | Not started | 49 / 65 |
 | ⚪ Not Applicable | No business logic — types, enums, DI wiring, barrels | 33 |
 | | **Total backend source files** | **98** |
 
@@ -87,8 +87,8 @@ Backend Audit Complete
 # Phase Progress
 
 **Phase 1 – Authentication Security**
-0 / 5
-`□□□□□□□□□□`
+1 / 5
+`■□□□□□□□□□`
 
 **Phase 2 – Authentication Core**
 0 / 18
@@ -147,7 +147,6 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 and ⚪ files are excluded — nothing further is required from them unless a future commit touches a 🟢 file (which resets it to 🟡).
 
 ## Phase 1 — Authentication Security
-⬜ `auth/guards/jwt-auth.guard.ts`
 ⬜ `auth/guards/roles.guard.ts`
 ⬜ `auth/jwt.strategy.ts`
 ⬜ `auth/decorators/current-user.decorator.ts`
@@ -267,15 +266,15 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Current Audit Phase:** Phase 1 – Authentication Security
 
-**Current File:** `auth/guards/jwt-auth.guard.ts`
+**Current File:** `auth/guards/roles.guard.ts`
 
-**Last completed task:** `bc16b12` — scope merchant refresh tokens to merchant sessions and enforce expiry (last commit on `main`). Since then, work has been documentation-only: replacing the audit tracker with this board.
+**Last completed task:** Audited `auth/guards/jwt-auth.guard.ts` — no issue found, marked 🟢 Fully Audited.
 
-**Current task:** Establishing `AUDIT_BOARD.md` as the single tracking document, replacing the deleted `AUDIT_STATUS.md`. No file audit is in progress.
+**Current task:** None in progress. Paused after `auth/guards/jwt-auth.guard.ts`, awaiting user direction to continue.
 
-**Next task:** Resume Phase 1 — audit `auth/guards/jwt-auth.guard.ts`, then proceed down the Phase 1 list, once the user explicitly says to resume auditing.
+**Next task:** Audit `auth/guards/roles.guard.ts`, then proceed down the Phase 1 list, once the user explicitly says to continue.
 
-**Blocked by:** Explicit user go-ahead to resume auditing. No further code changes or commits happen until then.
+**Blocked by:** Explicit user go-ahead to continue auditing the next file. No further code changes or commits happen until then.
 
 **Important reminders:**
 - Only `PaymentStateMachineService.applyTransition()` may change `PaymentRequest.status` (ADR-011).
@@ -357,5 +356,11 @@ Record only important audit-board milestones.
 - Backend audit will resume from:
   Phase 1
   auth/guards/jwt-auth.guard.ts
+
+**2026-07-17 (cont.)**
+- Resumed auditing by explicit user instruction.
+- Audited `auth/guards/jwt-auth.guard.ts`: simple delegation to `AuthGuard('jwt')`, no custom logic, no global `APP_GUARD` override, correctly applied per-controller across `auth`, `payment`, and `merchant` controllers. No issue found.
+- Marked 🟢 Fully Audited. No code changes, no commit needed.
+- Current File advanced to `auth/guards/roles.guard.ts`.
 
 Future sessions will append new entries here.
