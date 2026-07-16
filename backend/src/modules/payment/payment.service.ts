@@ -77,7 +77,7 @@ export class PaymentService {
       throw new BadRequestException('paymentMethod is required.');
     }
 
-    const { merchant } = await this.resolveIdentity(user);
+    const { merchant, employee } = await this.resolveIdentity(user);
 
     const paymentRequest = await this.paymentRequestRepository.findOne({ where: { id: paymentRequestId } });
 
@@ -87,6 +87,10 @@ export class PaymentService {
 
     if (paymentRequest.merchantId !== merchant.id) {
       throw new UnauthorizedException('Payment request does not belong to the authenticated merchant.');
+    }
+
+    if (employee && paymentRequest.employeeId !== employee.id) {
+      throw new UnauthorizedException('Payment request does not belong to the authenticated employee.');
     }
 
     const result = await this.paymentEngine.recordTransaction({
