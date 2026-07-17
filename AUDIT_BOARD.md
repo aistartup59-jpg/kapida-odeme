@@ -48,7 +48,7 @@ This workflow is permanent.
 **Last Updated:** 2026-07-17
 **Current Phase:** Phase 3 – Payment Provider
 **Current Module:** Payment Provider
-**Current File:** `payment-provider/security/credential-masking.service.ts`
+**Current File:** `payment-provider/factory/payment-provider.factory.ts`
 
 **Current File Rule**
 
@@ -60,7 +60,7 @@ Current File becomes:
 
 Backend Audit Complete
 
-**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). **Phase 1 complete (5/5). Phase 2 complete (18/18).** In Phase 3 – Payment Provider: `credential-encryption.service.ts` and `credential-encryption-secret.ts` reviewed, no issue (AES-256-GCM, correct IV/auth-tag handling). `credential-vault.service.ts` reviewed: storage is in-memory only (self-documented placeholder), contradicts PROJECT_STATUS.md's "production-ready" claim for credential vaulting — recorded in Deferred Findings per user (2026-07-18), not fixed now (needs a real architecture decision once the provider set is settled). File marked 🟢 as correctly implemented for its current documented scope.
+**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). **Phase 1 complete (5/5). Phase 2 complete (18/18). Phase 5 – Merchant complete (6/6).** In Phase 3 – Payment Provider (5/17 so far): credential encryption/vault/masking reviewed (vault persistence gap recorded in Deferred Findings); while verifying `CredentialMaskingService` had no unmasked-leak risk, fully reviewed the whole `merchant-payment-provider` module (service, controller, repository, entity, response DTO) — no bugs, completing Phase 5 out of order. Noted two harmless YAGNI-style dead fields (`MerchantPaymentProvider.priority`, never set by any code path; `isActive` entity default of `true` never actually exercised since `register()` always overrides it) — not bugs, mentioned to user, not fixed.
 
 ---
 
@@ -69,16 +69,16 @@ Backend Audit Complete
 **Auditable Files: 65** (98 total backend source files, 33 Not Applicable)
 
 **🟢 Fully Audited**
-`🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢` 30 / 65 — 46%
+`🟢🟢🟢🟢🟢⬜⬜⬜⬜⬜` 36 / 65 — 55%
 
 **🟡 Review Started** (includes files already at 🟢)
-`🟡🟡🟡🟡🟡🟡🟡🟡🟡🟡` 39 / 65 — 60%
+`🟡🟡🟡🟡🟡🟡⬜⬜⬜⬜` 43 / 65 — 66%
 
 | Status | Meaning | Count |
 |---|---|---:|
-| 🟢 Fully Audited | Complete manual review finished | 30 / 65 |
-| 🟡 Review Started | Fix landed, file not yet fully reviewed | 9 / 65 |
-| ⬜ Remaining | Not started | 26 / 65 |
+| 🟢 Fully Audited | Complete manual review finished | 36 / 65 |
+| 🟡 Review Started | Fix landed, file not yet fully reviewed | 7 / 65 |
+| ⬜ Remaining | Not started | 22 / 65 |
 | ⚪ Not Applicable | No business logic — types, enums, DI wiring, barrels | 33 |
 | | **Total backend source files** | **98** |
 
@@ -95,16 +95,16 @@ Backend Audit Complete
 `■■■■■■■■■■`
 
 **Phase 3 – Payment Provider**
-3 / 17
-`■■□□□□□□□□`
+5 / 17
+`■■■□□□□□□□`
 
 **Phase 4 – Payment & Transaction**
 3 / 14
 `■■□□□□□□□□`
 
 **Phase 5 – Merchant**
-2 / 6
-`■■■□□□□□□□`
+6 / 6
+`■■■■■■■■■■`
 
 **Phase 6 – Database & Shared**
 0 / 4
@@ -150,7 +150,6 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 and ⚪ files are excluded — nothing further is required from them unless a future commit touches a 🟢 file (which resets it to 🟡).
 
 ## Phase 3 — Payment Provider
-⬜ `payment-provider/security/credential-masking.service.ts`
 ⬜ `payment-provider/factory/payment-provider.factory.ts`
 ⬜ `payment-provider/registry/provider.registry.ts`
 ⬜ `payment-provider/resolver/provider-resolver.service.ts`
@@ -158,7 +157,6 @@ Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 an
 ⬜ `payment-provider/adapters/parampos/parampos.client.ts`
 ⬜ `payment-provider/adapters/parampos/parampos.config.ts`
 ⬜ `payment-provider/adapters/parampos/parampos.credentials.ts`
-⬜ `payment-provider/entities/merchant-payment-provider.entity.ts`
 ⬜ `payment-provider/core/provider-error.model.ts`
 ⬜ `payment-provider/core/provider-credentials.model.ts`
 ⬜ `payment-provider/core/payment-result.model.ts`
@@ -177,12 +175,6 @@ Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 an
 ⬜ `payment/dto/transaction-response.dto.ts`
 ⬜ `payment/engine/models/payment-execution-context.model.ts`
 ⬜ `payment/engine/models/payment-execution-result.model.ts`
-
-## Phase 5 — Merchant
-🟡 `merchant/merchant-payment-provider.service.ts` (033443b, 47f8d87)
-🟡 `merchant/repositories/merchant-payment-provider.repository.ts` (033443b)
-⬜ `merchant/merchant-payment-provider.controller.ts`
-⬜ `merchant/dto/merchant-payment-provider-response.dto.ts`
 
 ## Phase 6 — Database & Shared
 🟡 `shared/decimal.transformer.ts` (556ba2f)
@@ -231,17 +223,17 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Current Branch:** main
 
-**Last Commit:** `e33aa53`
+**Last Commit:** `9ce5aac`
 
 **Current Audit Phase:** Phase 3 – Payment Provider
 
-**Current File:** `payment-provider/security/credential-masking.service.ts`
+**Current File:** `payment-provider/factory/payment-provider.factory.ts`
 
-**Last completed task:** Audited `credential-encryption.service.ts` (AES-256-GCM, correct random IV per encryption, correct auth-tag verification, no issues) and `credential-encryption-secret.ts` (required-secret pattern, no issues). Audited `credential-vault.service.ts`: found it stores vaulted credentials in an in-memory `Map` only (self-documented placeholder, no persistence, lost on restart, not shared across instances) — contradicts `PROJECT_STATUS.md`'s "production-ready" claim for credential vaulting. Per user, likely intentionally deferred until the provider set is settled (shouldn't design persistent storage around ParamPOS alone). Recorded in Deferred Findings; file marked 🟢 as correctly implemented for its current documented scope.
+**Last completed task:** Audited `credential-masking.service.ts` — implemented correctly but unused anywhere in the codebase; verified this is not a leak risk by fully reviewing the `merchant-payment-provider` module (service, controller, repository, entity, response DTO), confirming `toResponse()` never includes credentials in API output. No bugs found in any of these; all marked 🟢, completing **Phase 5 – Merchant (6/6)** out of order. Noted two harmless dead fields for future cleanup (not fixed, not bugs): `MerchantPaymentProvider.priority` is never set by any code path (matches the question raised in the stray text previously removed from `PROJECT_SPEC.md` — likely that text was accidental leftover audit output pasted into the wrong file, not a malicious injection); `isActive` entity default of `true` is never actually exercised since `register()` always explicitly sets `false`.
 
 **Current task:** Continuous audit mode — proceeding through Phase 3 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding; architecture-level gaps go to Deferred Findings.
 
-**Next task:** Audit `payment-provider/security/credential-masking.service.ts`.
+**Next task:** Audit `payment-provider/factory/payment-provider.factory.ts`.
 
 **Blocked by:** Nothing — continuous audit mode active. Still stop and wait for explicit approval before committing any actual code fix (not board-only updates).
 
@@ -360,5 +352,8 @@ Record only important audit-board milestones.
 - Audited `credential-encryption-secret.ts`: same required-secret-no-default pattern as `jwt-secret.ts`. No issue found, marked 🟢.
 - Audited `credential-vault.service.ts`: storage is an in-memory `Map` only, self-documented as a placeholder ("Persistent storage is out of scope for this sprint"). Credentials are lost on restart and not shared across instances — contradicts `PROJECT_STATUS.md`'s "production-ready" listing for credential vaulting. Discussed with user: likely intentionally deferred so persistent storage isn't designed around ParamPOS alone before the full provider set is settled. Recorded as a Deferred Finding (architecture-level, not a quick fix). File marked 🟢 — correctly implemented for its current, explicitly-scoped placeholder behavior.
 - Current File advanced to `payment-provider/security/credential-masking.service.ts` (Phase 3).
+- Audited `credential-masking.service.ts`: correctly implemented (masks all but last 4 chars) but not referenced anywhere in the codebase. To confirm this isn't hiding a real leak, fully reviewed the `merchant-payment-provider` module: `merchant-payment-provider.service.ts` (vault update/delete ordering is failure-safe, `activate()` is transactionally atomic), `.controller.ts` (all routes correctly guarded, merchant-only via `resolveMerchantId`), `.repository.ts`, `merchant-payment-provider.entity.ts`, and `merchant-payment-provider-response.dto.ts` — confirmed `toResponse()` never includes credentials in API output, so the missing masking has no actual impact. No bugs found in any of these six files; all marked 🟢, completing **Phase 5 – Merchant (6/6)** out of order.
+- Noted two harmless dead fields, not fixed (not bugs): `MerchantPaymentProvider.priority` is a DB column never set by any code path — matches the exact question raised in the stray text previously removed from `PROJECT_SPEC.md`, suggesting that text was accidental leftover audit output pasted into the wrong file rather than a malicious prompt injection. `isActive` entity default of `true` is never exercised since `register()` always explicitly sets `false`.
+- Current File advanced to `payment-provider/factory/payment-provider.factory.ts` (Phase 3).
 
 Future sessions will append new entries here.
