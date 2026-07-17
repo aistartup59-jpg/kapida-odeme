@@ -48,7 +48,7 @@ This workflow is permanent.
 **Last Updated:** 2026-07-17
 **Current Phase:** Phase 3 – Payment Provider
 **Current Module:** Payment Provider
-**Current File:** `payment-provider/security/credential-encryption.service.ts`
+**Current File:** `payment-provider/security/credential-masking.service.ts`
 
 **Current File Rule**
 
@@ -60,7 +60,7 @@ Current File becomes:
 
 Backend Audit Complete
 
-**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). **Phase 1 – Authentication Security complete (5/5). Phase 2 – Authentication Core complete (18/18).** Two real bugs found and fixed in Phase 2: `logout()` session scoping (`bd594b4`) and the missing global `ValidationPipe` (`39ada07`, which also completed 5 DTOs out of order in Phase 4/5). Now starting Phase 3 – Payment Provider.
+**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). **Phase 1 complete (5/5). Phase 2 complete (18/18).** In Phase 3 – Payment Provider: `credential-encryption.service.ts` and `credential-encryption-secret.ts` reviewed, no issue (AES-256-GCM, correct IV/auth-tag handling). `credential-vault.service.ts` reviewed: storage is in-memory only (self-documented placeholder), contradicts PROJECT_STATUS.md's "production-ready" claim for credential vaulting — recorded in Deferred Findings per user (2026-07-18), not fixed now (needs a real architecture decision once the provider set is settled). File marked 🟢 as correctly implemented for its current documented scope.
 
 ---
 
@@ -69,16 +69,16 @@ Backend Audit Complete
 **Auditable Files: 65** (98 total backend source files, 33 Not Applicable)
 
 **🟢 Fully Audited**
-`🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢` 27 / 65 — 42%
+`🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢` 30 / 65 — 46%
 
 **🟡 Review Started** (includes files already at 🟢)
-`🟡🟡🟡🟡🟡🟡🟡🟡🟡🟡` 38 / 65 — 58%
+`🟡🟡🟡🟡🟡🟡🟡🟡🟡🟡` 39 / 65 — 60%
 
 | Status | Meaning | Count |
 |---|---|---:|
-| 🟢 Fully Audited | Complete manual review finished | 27 / 65 |
-| 🟡 Review Started | Fix landed, file not yet fully reviewed | 11 / 65 |
-| ⬜ Remaining | Not started | 27 / 65 |
+| 🟢 Fully Audited | Complete manual review finished | 30 / 65 |
+| 🟡 Review Started | Fix landed, file not yet fully reviewed | 9 / 65 |
+| ⬜ Remaining | Not started | 26 / 65 |
 | ⚪ Not Applicable | No business logic — types, enums, DI wiring, barrels | 33 |
 | | **Total backend source files** | **98** |
 
@@ -95,8 +95,8 @@ Backend Audit Complete
 `■■■■■■■■■■`
 
 **Phase 3 – Payment Provider**
-0 / 17
-`□□□□□□□□□□`
+3 / 17
+`■■□□□□□□□□`
 
 **Phase 4 – Payment & Transaction**
 3 / 14
@@ -150,9 +150,6 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 and ⚪ files are excluded — nothing further is required from them unless a future commit touches a 🟢 file (which resets it to 🟡).
 
 ## Phase 3 — Payment Provider
-🟡 `payment-provider/security/credential-encryption.service.ts` (1125935)
-🟡 `payment-provider/security/credential-encryption-secret.ts` (1125935)
-⬜ `payment-provider/security/credential-vault.service.ts`
 ⬜ `payment-provider/security/credential-masking.service.ts`
 ⬜ `payment-provider/factory/payment-provider.factory.ts`
 ⬜ `payment-provider/registry/provider.registry.ts`
@@ -200,13 +197,13 @@ Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 an
 
 # Deferred Findings
 
-Only findings that require an architecture change belong here. None recorded yet.
+Only findings that require an architecture change belong here.
 
-_Format for future entries:_
+**Title:** `CredentialVaultService` uses in-memory storage only, no persistence
 
-**Title:**
-**Reason:**
-**Future Epic:**
+**Reason:** `payment-provider/security/credential-vault.service.ts` stores vaulted merchant provider credentials in a plain in-process `Map` (self-documented in the code as "Placeholder in-memory store. Persistent storage is out of scope for this sprint."). Credentials are lost on every restart/deploy and are not shared across multiple app instances. This contradicts `PROJECT_STATUS.md`, which currently lists "Credential vault/encryption" under production-ready features. Per user (2026-07-18): likely an intentional gap, left open because persistent storage design shouldn't be built around any single provider (ParamPOS, iyzico, etc.) before the multi-provider shape is settled — not an oversight, but still needs a real fix before this is production-ready. The encryption itself (`credential-encryption.service.ts`) is sound (AES-256-GCM, correct IV/auth-tag handling) — only the storage layer is a placeholder.
+
+**Future Epic:** Persistent, provider-agnostic credential storage (e.g. an encrypted DB-backed table keyed by an opaque reference, written once the intended set of providers is settled so the storage design isn't shaped around ParamPOS alone).
 
 ---
 
@@ -234,17 +231,17 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Current Branch:** main
 
-**Last Commit:** `ab800e5`
+**Last Commit:** `e33aa53`
 
 **Current Audit Phase:** Phase 3 – Payment Provider
 
-**Current File:** `payment-provider/security/credential-encryption.service.ts`
+**Current File:** `payment-provider/security/credential-masking.service.ts`
 
-**Last completed task:** Audited `auth.controller.ts` (route/guard wiring all correct), `password-hashing.service.ts` (scrypt + random salt + `timingSafeEqual`, correct), `merchant.entity.ts`, `merchant-session.entity.ts`, `employee.entity.ts` (structurally correct; a few unused columns like `isVerified`, `deviceName`/`ipAddress`/`userAgent` noted but harmless, not bugs). No issues found. **Phase 2 – Authentication Core complete (18/18).**
+**Last completed task:** Audited `credential-encryption.service.ts` (AES-256-GCM, correct random IV per encryption, correct auth-tag verification, no issues) and `credential-encryption-secret.ts` (required-secret pattern, no issues). Audited `credential-vault.service.ts`: found it stores vaulted credentials in an in-memory `Map` only (self-documented placeholder, no persistence, lost on restart, not shared across instances) — contradicts `PROJECT_STATUS.md`'s "production-ready" claim for credential vaulting. Per user, likely intentionally deferred until the provider set is settled (shouldn't design persistent storage around ParamPOS alone). Recorded in Deferred Findings; file marked 🟢 as correctly implemented for its current documented scope.
 
-**Current task:** Continuous audit mode — proceeding through Phase 3 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding.
+**Current task:** Continuous audit mode — proceeding through Phase 3 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding; architecture-level gaps go to Deferred Findings.
 
-**Next task:** Audit `payment-provider/security/credential-encryption.service.ts` (already 🟡 from `1125935`; needs complete manual review to reach 🟢). This module handles merchant provider credential encryption — audit carefully.
+**Next task:** Audit `payment-provider/security/credential-masking.service.ts`.
 
 **Blocked by:** Nothing — continuous audit mode active. Still stop and wait for explicit approval before committing any actual code fix (not board-only updates).
 
@@ -359,5 +356,9 @@ Record only important audit-board milestones.
 - Audited `merchant.entity.ts`, `merchant-session.entity.ts`, `employee.entity.ts`: unique constraints, cascades, and relations all consistent with service-layer usage. Noted (not a bug) that `Merchant.isVerified` and `MerchantSession.deviceName`/`ipAddress`/`userAgent` are defined but never written or read anywhere — dead columns, no behavioral impact. All three marked 🟢.
 - **Phase 2 – Authentication Core complete (18/18).**
 - Current File advanced to `payment-provider/security/credential-encryption.service.ts` (Phase 3).
+- Audited `credential-encryption.service.ts`: AES-256-GCM with a fresh random 12-byte IV per `encrypt()` call and correct GCM auth-tag verification on `decrypt()`. Static scrypt salt for key derivation is fine here (single stable key from one secret, not per-record password hashing). No issue found, marked 🟢.
+- Audited `credential-encryption-secret.ts`: same required-secret-no-default pattern as `jwt-secret.ts`. No issue found, marked 🟢.
+- Audited `credential-vault.service.ts`: storage is an in-memory `Map` only, self-documented as a placeholder ("Persistent storage is out of scope for this sprint"). Credentials are lost on restart and not shared across instances — contradicts `PROJECT_STATUS.md`'s "production-ready" listing for credential vaulting. Discussed with user: likely intentionally deferred so persistent storage isn't designed around ParamPOS alone before the full provider set is settled. Recorded as a Deferred Finding (architecture-level, not a quick fix). File marked 🟢 — correctly implemented for its current, explicitly-scoped placeholder behavior.
+- Current File advanced to `payment-provider/security/credential-masking.service.ts` (Phase 3).
 
 Future sessions will append new entries here.
