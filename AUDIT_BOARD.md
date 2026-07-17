@@ -48,7 +48,7 @@ This workflow is permanent.
 **Last Updated:** 2026-07-17
 **Current Phase:** Phase 6 – Database & Shared
 **Current Module:** Database & Shared
-**Current File:** `shared/decimal.transformer.ts`
+**Current File:** `database/migrations/1783976400000-InitialSchema.ts`
 
 **Current File Rule**
 
@@ -60,27 +60,27 @@ Current File becomes:
 
 Backend Audit Complete
 
-**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). **Phases 1, 2, 3, 4, 5 all complete.** Phase 4 (core financial lifecycle) verified carefully against ADR-011/012: state machine transition table, `.status` mutation confirmed centralized (grepped whole codebase), pessimistic-write locking confirmed to correctly serialize `cancelPayment` against `createTransaction` on the same row, idempotent provider-reference replay protection confirmed. Found and fixed one real bug: `calculateRemainingAmount()` didn't round its result, causing float-drift artifacts (e.g. `19.9 - 19.1` → `0.7999999999999989`) in the `remainingAmount` shown on every partial payment (`4c764a9`). Only Phase 6 (Database & Shared) and Phase 7 (Health) remain — 5 files total.
+**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). **Phases 1–5 all complete.** In Phase 6: `decimal.transformer.ts` and `data-source.ts` reviewed, no issue. `database-connection.options.ts` audit found a real hardening gap — `DATABASE_PASSWORD` silently fell back to the well-known default `'kapida'` instead of failing startup, inconsistent with this codebase's own established pattern for `JWT_SECRET`/`CREDENTIAL_ENCRYPTION_SECRET`. Fixed by adding `database-password.ts` (mirrors `jwt-secret.ts`) and requiring it with no default (`59bf4cd`); `docker-compose.yml`/`.env.example` already set it, so dev is unaffected. Only the initial-schema migration (Phase 6) and `health.controller.ts` (Phase 7) remain.
 
 ---
 
 # Overall Progress
 
-**Auditable Files: 65** (98 total backend source files, 33 Not Applicable)
+**Auditable Files: 66** (99 total backend source files, 33 Not Applicable)
 
 **🟢 Fully Audited**
-`🟢🟢🟢🟢🟢🟢🟢🟢🟢⬜` 60 / 65 — 92%
+`🟢🟢🟢🟢🟢🟢🟢🟢🟢⬜` 64 / 66 — 97%
 
 **🟡 Review Started** (includes files already at 🟢)
-`🟡🟡🟡🟡🟡🟡🟡🟡🟡⬜` 61 / 65 — 94%
+`🟡🟡🟡🟡🟡🟡🟡🟡🟡🟡` 64 / 66 — 97%
 
 | Status | Meaning | Count |
 |---|---|---:|
-| 🟢 Fully Audited | Complete manual review finished | 60 / 65 |
-| 🟡 Review Started | Fix landed, file not yet fully reviewed | 1 / 65 |
-| ⬜ Remaining | Not started | 4 / 65 |
+| 🟢 Fully Audited | Complete manual review finished | 64 / 66 |
+| 🟡 Review Started | Fix landed, file not yet fully reviewed | 0 / 66 |
+| ⬜ Remaining | Not started | 2 / 66 |
 | ⚪ Not Applicable | No business logic — types, enums, DI wiring, barrels | 33 |
-| | **Total backend source files** | **98** |
+| | **Total backend source files** | **99** |
 
 ---
 
@@ -107,8 +107,8 @@ Backend Audit Complete
 `■■■■■■■■■■`
 
 **Phase 6 – Database & Shared**
-0 / 4
-`□□□□□□□□□□`
+4 / 5
+`■■■■■■■■□□`
 
 **Phase 7 – Health**
 0 / 1
@@ -142,7 +142,8 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 | 16 | | Include role claim in merchant and employee JWTs so RolesGuard is functional | `af32185` | Auth | Bug Fix | Fixed |
 | 17 | | Scope merchant logout to the merchant's own session | `bd594b4` | Auth | Bug Fix | Fixed |
 | 18 | | Register global ValidationPipe; add missing validators to 13 DTOs | `39ada07` | Auth / Payment / Merchant | Bug Fix | Fixed |
-| 19 | newest | Round remainingAmount to avoid float drift | `4c764a9` | Transaction | Bug Fix | Fixed |
+| 19 | | Round remainingAmount to avoid float drift | `4c764a9` | Transaction | Bug Fix | Fixed |
+| 20 | newest | Require DATABASE_PASSWORD at startup, no default | `59bf4cd` | Database | Hardening | Fixed |
 
 ---
 
@@ -151,10 +152,7 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 and ⚪ files are excluded — nothing further is required from them unless a future commit touches a 🟢 file (which resets it to 🟡).
 
 ## Phase 6 — Database & Shared
-🟡 `shared/decimal.transformer.ts` (556ba2f)
 ⬜ `database/migrations/1783976400000-InitialSchema.ts`
-⬜ `database/data-source.ts`
-⬜ `database/database-connection.options.ts`
 
 ## Phase 7 — Health
 ⬜ `health/health.controller.ts`
@@ -197,17 +195,17 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Current Branch:** main
 
-**Last Commit:** `4c764a9`
+**Last Commit:** `59bf4cd`
 
 **Current Audit Phase:** Phase 6 – Database & Shared
 
-**Current File:** `shared/decimal.transformer.ts`
+**Current File:** `database/migrations/1783976400000-InitialSchema.ts`
 
-**Last completed task:** Full manual review of all remaining Phase 4 files: `payment.service.ts` (identity resolution, ownership scoping, ADR-002/005 compliant), `payment-state-machine.service.ts` (transition table verified against business rules, ADR-011 confirmed by grepping the whole codebase for `.status =` — only this file writes it), `payment-engine.service.ts` (provider dispatch failure correctly transitions to FAILED via the state machine, `cancelPayment` uses a matching pessimistic lock to `transaction-engine.service.ts` so the two properly serialize), `payment-request.entity.ts`, `transaction.entity.ts` (no `updatedAt`, matches ADR-012 immutability), `payment.controller.ts`, and the remaining response DTOs/models (type-only). Found and fixed one real bug in `transaction-engine.service.ts`: `calculateRemainingAmount()` didn't round its subtraction, causing float-drift artifacts in the API response (`4c764a9`). **Phase 4 – Payment & Transaction complete (14/14).**
+**Last completed task:** Audited `decimal.transformer.ts` (correct string→number coercion for Postgres decimal columns) and `data-source.ts` (CLI migration entry point, shares connection options with the runtime module) — no issues. Audited `database-connection.options.ts`: found `DATABASE_PASSWORD` silently defaulted to the well-known value `'kapida'` instead of failing startup, inconsistent with this codebase's own hardening pattern for `JWT_SECRET`/`CREDENTIAL_ENCRYPTION_SECRET`. User agreed to harden it the same way. Added `database-password.ts` (mirrors `jwt-secret.ts`) and wired it in. Build passed, user approved, committed and pushed as `59bf4cd`. `docker-compose.yml`/`.env.example` already set the variable, so dev setups are unaffected. All four files (plus the new `database-password.ts`) marked 🟢.
 
-**Current task:** Continuous audit mode — proceeding through Phase 6 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding; architecture-level gaps go to Deferred Findings.
+**Current task:** Continuous audit mode — proceeding through Phase 6/7 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding.
 
-**Next task:** Audit `shared/decimal.transformer.ts` (already 🟡 from `556ba2f`; needs complete manual review to reach 🟢). Only 5 files remain in the entire audit (Phase 6: 4, Phase 7: 1).
+**Next task:** Audit `database/migrations/1783976400000-InitialSchema.ts` — the last Phase 6 file. Only 2 files remain in the entire audit (this one, and `health/health.controller.ts` in Phase 7).
 
 **Blocked by:** Nothing — continuous audit mode active. Still stop and wait for explicit approval before committing any actual code fix (not board-only updates).
 
@@ -344,5 +342,9 @@ Record only important audit-board milestones.
 - Audited `payment.controller.ts`, `payment-request-response.dto.ts`, `transaction-response.dto.ts`, `payment-execution-context.model.ts`, `payment-execution-result.model.ts`: correct route/guard wiring and type-only response shapes consistent with their producers. No issue, all marked 🟢.
 - **Phase 4 – Payment & Transaction complete (14/14).**
 - Current File advanced to `shared/decimal.transformer.ts` (Phase 6). Only Phase 6 (4 files) and Phase 7 (1 file) remain.
+- Audited `decimal.transformer.ts`: correctly coerces Postgres decimal-column strings to JS numbers on read, passthrough on write. No issue, marked 🟢.
+- Audited `data-source.ts`: CLI-only migration entry point, shares connection options with the runtime `TypeOrmModule` via `getDatabaseConnectionOptions()`. No issue, marked 🟢.
+- Audited `database-connection.options.ts`: found `DATABASE_PASSWORD` silently fell back to the well-known default `'kapida'` instead of failing startup — inconsistent with this codebase's own hardening pattern already applied to `JWT_SECRET` and `CREDENTIAL_ENCRYPTION_SECRET`. Discussed with user, who agreed hardening was the right call given the low cost and established precedent. Added `database-password.ts` (mirrors `jwt-secret.ts` exactly) and required it with no default. `docker-compose.yml`/`.env.example` already set the variable, so dev/CI are unaffected. Build passed, user approved, committed and pushed as `59bf4cd`. Both files marked 🟢; the new `database-password.ts` added to the codebase and counted as audited (Auditable Files: 65 → 66).
+- Current File advanced to `database/migrations/1783976400000-InitialSchema.ts` (Phase 6, last file in this phase).
 
 Future sessions will append new entries here.
