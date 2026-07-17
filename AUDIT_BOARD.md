@@ -48,7 +48,7 @@ This workflow is permanent.
 **Last Updated:** 2026-07-17
 **Current Phase:** Phase 2 – Authentication Core
 **Current Module:** Auth
-**Current File:** `auth/auth.service.ts`
+**Current File:** `auth/jwt-secret.ts`
 
 **Current File Rule**
 
@@ -60,7 +60,7 @@ Current File becomes:
 
 Backend Audit Complete
 
-**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). Phase 1 – Authentication Security complete (5/5, all 🟢): `jwt-auth.guard.ts`, `roles.guard.ts` (bug found and fixed, see `af32185`), `jwt.strategy.ts`, `current-user.decorator.ts`, `roles.decorator.ts`. Now in Phase 2 – Authentication Core.
+**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). Phase 1 – Authentication Security complete (5/5, all 🟢). In Phase 2 – Authentication Core: `auth.service.ts` fully reviewed end-to-end; found and fixed a real bug in `logout()` (see `bd594b4`), now marked 🟢.
 
 ---
 
@@ -69,15 +69,15 @@ Backend Audit Complete
 **Auditable Files: 65** (98 total backend source files, 33 Not Applicable)
 
 **🟢 Fully Audited**
-`🟢🟢🟢🟢🟢⬜⬜⬜⬜⬜` 5 / 65 — 8%
+`🟢🟢🟢🟢🟢🟢⬜⬜⬜⬜` 6 / 65 — 9%
 
 **🟡 Review Started** (includes files already at 🟢)
 `🟡🟡🟡🟡🟡🟡⬜⬜⬜⬜` 20 / 65 — 31%
 
 | Status | Meaning | Count |
 |---|---|---:|
-| 🟢 Fully Audited | Complete manual review finished | 5 / 65 |
-| 🟡 Review Started | Fix landed, file not yet fully reviewed | 15 / 65 |
+| 🟢 Fully Audited | Complete manual review finished | 6 / 65 |
+| 🟡 Review Started | Fix landed, file not yet fully reviewed | 14 / 65 |
 | ⬜ Remaining | Not started | 45 / 65 |
 | ⚪ Not Applicable | No business logic — types, enums, DI wiring, barrels | 33 |
 | | **Total backend source files** | **98** |
@@ -91,8 +91,8 @@ Backend Audit Complete
 `■■■■■■■■■■`
 
 **Phase 2 – Authentication Core**
-0 / 18
-`□□□□□□□□□□`
+1 / 18
+`■□□□□□□□□□`
 
 **Phase 3 – Payment Provider**
 0 / 17
@@ -139,7 +139,8 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 | 13 | | Enforce employee ownership when recording transactions | `5f27175` | Payment | Bug Fix | Fixed |
 | 14 | | Eliminate floating-point payment state drift | `a06cef2` | Transaction | Bug Fix | Fixed |
 | 15 | | Scope merchant refresh tokens to merchant sessions and enforce expiry | `bc16b12` | Auth | Bug Fix | Fixed |
-| 16 | newest | Include role claim in merchant and employee JWTs so RolesGuard is functional | `af32185` | Auth | Bug Fix | Fixed |
+| 16 | | Include role claim in merchant and employee JWTs so RolesGuard is functional | `af32185` | Auth | Bug Fix | Fixed |
+| 17 | newest | Scope merchant logout to the merchant's own session | `bd594b4` | Auth | Bug Fix | Fixed |
 
 ---
 
@@ -148,7 +149,6 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 and ⚪ files are excluded — nothing further is required from them unless a future commit touches a 🟢 file (which resets it to 🟡).
 
 ## Phase 2 — Authentication Core
-🟡 `auth/auth.service.ts` (bc16b12, af32185)
 🟡 `auth/jwt-secret.ts` (7373276)
 🟡 `auth/jwt-config.service.ts` (7373276)
 🟡 `main.ts` (7373276)
@@ -257,17 +257,17 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Current Branch:** main
 
-**Last Commit:** `462572f`
+**Last Commit:** `bd594b4`
 
 **Current Audit Phase:** Phase 2 – Authentication Core
 
-**Current File:** `auth/auth.service.ts`
+**Current File:** `auth/jwt-secret.ts`
 
-**Last completed task:** Audited `current-user.decorator.ts` and `roles.decorator.ts` — no issues found, both marked 🟢. Phase 1 – Authentication Security complete (5/5).
+**Last completed task:** Full manual review of `auth/auth.service.ts`. Found and fixed a real bug: `logout()` (merchant logout) looked up the most recently used non-revoked session by `merchantId` only, with no `employeeId: IsNull()` filter — since employee sessions share the same `merchantId`, a merchant's logout call could revoke an unrelated employee's session instead of their own whenever that employee was more recently active. Fixed to match the scoping already used by `refreshToken()` and `logoutEmployee()`. Build passed, user approved, committed and pushed as `bd594b4`. `auth.service.ts` marked 🟢 Fully Audited.
 
 **Current task:** Continuous audit mode — proceeding through Phase 2 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding.
 
-**Next task:** Full audit of `auth/auth.service.ts` (already 🟡 from prior fixes `bc16b12`, `af32185`; needs complete manual review to reach 🟢).
+**Next task:** Audit `auth/jwt-secret.ts` (already 🟡 from `7373276`; needs complete manual review to reach 🟢).
 
 **Blocked by:** Nothing — continuous audit mode active. Still stop and wait for explicit approval before committing any actual code fix (not board-only updates).
 
@@ -372,5 +372,7 @@ Record only important audit-board milestones.
 - Audited `roles.decorator.ts`: standard `SetMetadata` wrapper, `ROLES_KEY` consistent with `RolesGuard`. No issue found, marked 🟢.
 - **Phase 1 – Authentication Security complete (5/5).**
 - Current File advanced to `auth/auth.service.ts` (Phase 2).
+- Full manual review of `auth/auth.service.ts`: found `logout()` (merchant logout) revoked the most-recently-used session by `merchantId` alone, with no `employeeId: IsNull()` filter, so it could revoke an unrelated employee's session instead of the merchant's own whenever that employee was more recently active. Fixed to match `refreshToken()`/`logoutEmployee()` scoping. Build passed, user approved, committed and pushed as `bd594b4`. Marked 🟢.
+- Current File advanced to `auth/jwt-secret.ts` (Phase 2).
 
 Future sessions will append new entries here.
