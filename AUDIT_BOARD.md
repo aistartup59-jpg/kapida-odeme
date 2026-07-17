@@ -48,7 +48,7 @@ This workflow is permanent.
 **Last Updated:** 2026-07-17
 **Current Phase:** Phase 1 – Authentication Security
 **Current Module:** Auth
-**Current File:** `auth/jwt.strategy.ts`
+**Current File:** `auth/decorators/current-user.decorator.ts`
 
 **Current File Rule**
 
@@ -60,7 +60,7 @@ Current File becomes:
 
 Backend Audit Complete
 
-**Current Activity:** Auditing in progress — resumed by explicit user instruction. `auth/guards/jwt-auth.guard.ts` fully audited, no issue found. `auth/guards/roles.guard.ts` audited: guard logic itself correct, but no JWT ever carried a `role` claim, so its one consumer (`POST /auth/employee`, `@Roles(OWNER)`) rejected every caller. Fixed in `auth.service.ts` (`af32185`) — merchant JWTs now carry `role: OWNER`, employee JWTs carry `role: employee.role`. `roles.guard.ts` marked 🟢 (guard logic confirmed correct end-to-end); `auth.service.ts` stays 🟡 (fix landed, full-file review still pending — its turn is later in Phase 2). Paused pending user direction to continue.
+**Current Activity:** Auditing in progress — resumed by explicit user instruction. `auth/guards/jwt-auth.guard.ts` fully audited, no issue found. `auth/guards/roles.guard.ts` audited: guard logic itself correct, but no JWT ever carried a `role` claim, so its one consumer (`POST /auth/employee`, `@Roles(OWNER)`) rejected every caller. Fixed in `auth.service.ts` (`af32185`) — merchant JWTs now carry `role: OWNER`, employee JWTs carry `role: employee.role`. `roles.guard.ts` marked 🟢 (guard logic confirmed correct end-to-end); `auth.service.ts` stays 🟡 (fix landed, full-file review still pending — its turn is later in Phase 2). `auth/jwt.strategy.ts` audited: correct extraction, expiration enforcement, required secret, safe HMAC algorithm defaults, 15m access token TTL confirmed in `auth.module.ts`. No issue found, marked 🟢. Paused pending user direction to continue.
 
 ---
 
@@ -69,16 +69,16 @@ Backend Audit Complete
 **Auditable Files: 65** (98 total backend source files, 33 Not Applicable)
 
 **🟢 Fully Audited**
-`🟢🟢⬜⬜⬜⬜⬜⬜⬜⬜` 2 / 65 — 3%
+`🟢🟢🟢⬜⬜⬜⬜⬜⬜⬜` 3 / 65 — 5%
 
 **🟡 Review Started** (includes files already at 🟢)
-`🟡🟡🟡⬜⬜⬜⬜⬜⬜⬜` 17 / 65 — 26%
+`🟡🟡🟡🟡⬜⬜⬜⬜⬜⬜` 18 / 65 — 28%
 
 | Status | Meaning | Count |
 |---|---|---:|
-| 🟢 Fully Audited | Complete manual review finished | 2 / 65 |
+| 🟢 Fully Audited | Complete manual review finished | 3 / 65 |
 | 🟡 Review Started | Fix landed, file not yet fully reviewed | 15 / 65 |
-| ⬜ Remaining | Not started | 48 / 65 |
+| ⬜ Remaining | Not started | 47 / 65 |
 | ⚪ Not Applicable | No business logic — types, enums, DI wiring, barrels | 33 |
 | | **Total backend source files** | **98** |
 
@@ -87,8 +87,8 @@ Backend Audit Complete
 # Phase Progress
 
 **Phase 1 – Authentication Security**
-2 / 5
-`■■□□□□□□□□`
+3 / 5
+`■■■□□□□□□□`
 
 **Phase 2 – Authentication Core**
 0 / 18
@@ -148,7 +148,6 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 and ⚪ files are excluded — nothing further is required from them unless a future commit touches a 🟢 file (which resets it to 🟡).
 
 ## Phase 1 — Authentication Security
-⬜ `auth/jwt.strategy.ts`
 ⬜ `auth/decorators/current-user.decorator.ts`
 ⬜ `auth/decorators/roles.decorator.ts`
 
@@ -262,17 +261,17 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Current Branch:** main
 
-**Last Commit:** `af32185`
+**Last Commit:** `67c9396`
 
 **Current Audit Phase:** Phase 1 – Authentication Security
 
-**Current File:** `auth/jwt.strategy.ts`
+**Current File:** `auth/decorators/current-user.decorator.ts`
 
-**Last completed task:** Audited `auth/guards/roles.guard.ts`. Found and fixed a real bug: no JWT ever carried a `role` claim, so the guard's one consumer (`POST /auth/employee`, `@Roles(OWNER)`) rejected every caller, including legitimate merchant owners. Fixed in `auth.service.ts` — merchant JWTs now carry `role: OWNER`, employee JWTs carry `role: employee.role`. Build passed, user approved, committed and pushed as `af32185`. `roles.guard.ts` marked 🟢; `auth.service.ts` stays 🟡 (fix landed, full-file review still pending).
+**Last completed task:** Audited `auth/jwt.strategy.ts` — correct expiration enforcement, required secret, safe algorithm defaults, 15m access token TTL confirmed. No issue found, marked 🟢 Fully Audited.
 
-**Current task:** None in progress. Paused after `auth/guards/roles.guard.ts`, awaiting user direction to continue.
+**Current task:** None in progress. Paused after `auth/jwt.strategy.ts`, awaiting user direction to continue.
 
-**Next task:** Audit `auth/jwt.strategy.ts`, then proceed down the Phase 1 list, once the user explicitly says to continue.
+**Next task:** Audit `auth/decorators/current-user.decorator.ts`, then proceed down the Phase 1 list, once the user explicitly says to continue.
 
 **Blocked by:** Explicit user go-ahead to continue auditing the next file. No further code changes or commits happen until then.
 
@@ -370,5 +369,7 @@ Record only important audit-board milestones.
 - Fixed in `auth.service.ts`: merchant login/refresh now sign `role: Role.OWNER`; employee login/refresh now sign `role: employee.role` from the database. Build passed. User approved. Committed and pushed as `af32185`.
 - Marked `auth/guards/roles.guard.ts` 🟢 Fully Audited. `auth/auth.service.ts` remains 🟡 (fix landed, full-file review still pending in Phase 2).
 - Current File advanced to `auth/jwt.strategy.ts`.
+- Audited `auth/jwt.strategy.ts`: correct Bearer extraction, `ignoreExpiration: false`, required secret via `getRequiredJwtSecret()`, HMAC-only algorithm defaults from `jsonwebtoken` (no `alg: none` bypass), 15m access token TTL confirmed in `auth.module.ts` signOptions. `validate()` returns the raw payload, which is safe since only our own signed tokens can pass verification. No issue found, marked 🟢.
+- Current File advanced to `auth/decorators/current-user.decorator.ts`.
 
 Future sessions will append new entries here.
