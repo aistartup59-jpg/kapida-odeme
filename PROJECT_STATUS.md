@@ -73,7 +73,7 @@ Not yet determined — development is paused pending user review of `PROJECT_STA
 
 ## What Is Considered Production-Ready
 
-Based on repository evidence (implemented, integrated, and subject to the fix cycle documented in `AUDIT_STATUS.md`):
+Based on repository evidence (implemented, integrated, and subject to the fix cycle documented in `AUDIT_BOARD.md`):
 
 - Merchant registration, login, session management, refresh token rotation, logout
 - Employee invitation, login, session management, role-based authorization
@@ -82,7 +82,7 @@ Based on repository evidence (implemented, integrated, and subject to the fix cy
 - Payment lifecycle state machine and centralized transition enforcement
 - Hybrid/partial transaction recording with append-only ledger semantics
 - Payment cancellation flow
-- Credential vault/encryption and required-secret startup checks
+- Credential encryption (AES-256-GCM) and required-secret startup checks
 - Database migrations and decimal-safe persistence
 
 ## What Is Still Under Development
@@ -92,4 +92,5 @@ Based on repository evidence (implemented, integrated, and subject to the fix cy
 - Website — Next.js skeleton only, no product-specific pages or integration
 - Refund flow — explicitly deferred by ADR-012 ("exact refund event model is left to the future Refund epic")
 - Additional payment providers beyond ParamPOS — architecture supports them (ADR-007) but none are implemented
-- Any module or area not yet covered by the audit cycle — see `AUDIT_STATUS.md` for the module-by-module breakdown
+- Credential vault persistence — `CredentialVaultService` stores vaulted provider credentials in an in-memory `Map` only (self-documented placeholder); lost on restart and not shared across instances. Encryption itself is sound, only the storage layer is a placeholder. See `AUDIT_BOARD.md` Deferred Findings.
+- Any module or area not yet covered by the audit cycle — see `AUDIT_BOARD.md` for the module-by-module breakdown
