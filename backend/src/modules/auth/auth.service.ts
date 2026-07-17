@@ -188,7 +188,7 @@ export class AuthService {
     }
 
     const session = await this.merchantSessionRepository.findOne({
-      where: { merchantId: user.sub, revokedAt: IsNull() },
+      where: { merchantId: user.sub, employeeId: IsNull(), revokedAt: IsNull() },
       order: { lastUsedAt: 'DESC', createdAt: 'DESC' },
     });
 
