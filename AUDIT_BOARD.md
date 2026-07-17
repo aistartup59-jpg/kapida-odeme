@@ -46,9 +46,9 @@ This workflow is permanent.
 
 **Project:** Kapıda Ödeme / PayALS
 **Last Updated:** 2026-07-17
-**Current Phase:** Phase 4 – Payment & Transaction
-**Current Module:** Payment & Transaction
-**Current File:** `payment/payment.service.ts`
+**Current Phase:** Phase 6 – Database & Shared
+**Current Module:** Database & Shared
+**Current File:** `shared/decimal.transformer.ts`
 
 **Current File Rule**
 
@@ -60,7 +60,7 @@ Current File becomes:
 
 Backend Audit Complete
 
-**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). **Phase 1 complete (5/5). Phase 2 complete (18/18). Phase 3 – Payment Provider complete (17/17). Phase 5 – Merchant complete (6/6).** Credential vault persistence gap recorded in Deferred Findings. ParamPOS adapter/client confirmed to be an honest, self-documented skeleton (throws `NotImplementedException` rather than faking success) — not a bug. Now starting Phase 4 – Payment & Transaction, the core financial lifecycle module; audit carefully given ADR-011/ADR-012 constraints.
+**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). **Phases 1, 2, 3, 4, 5 all complete.** Phase 4 (core financial lifecycle) verified carefully against ADR-011/012: state machine transition table, `.status` mutation confirmed centralized (grepped whole codebase), pessimistic-write locking confirmed to correctly serialize `cancelPayment` against `createTransaction` on the same row, idempotent provider-reference replay protection confirmed. Found and fixed one real bug: `calculateRemainingAmount()` didn't round its result, causing float-drift artifacts (e.g. `19.9 - 19.1` → `0.7999999999999989`) in the `remainingAmount` shown on every partial payment (`4c764a9`). Only Phase 6 (Database & Shared) and Phase 7 (Health) remain — 5 files total.
 
 ---
 
@@ -69,16 +69,16 @@ Backend Audit Complete
 **Auditable Files: 65** (98 total backend source files, 33 Not Applicable)
 
 **🟢 Fully Audited**
-`🟢🟢🟢🟢🟢🟢🟢⬜⬜⬜` 49 / 65 — 75%
+`🟢🟢🟢🟢🟢🟢🟢🟢🟢⬜` 60 / 65 — 92%
 
 **🟡 Review Started** (includes files already at 🟢)
-`🟡🟡🟡🟡🟡🟡🟡🟡⬜⬜` 56 / 65 — 86%
+`🟡🟡🟡🟡🟡🟡🟡🟡🟡⬜` 61 / 65 — 94%
 
 | Status | Meaning | Count |
 |---|---|---:|
-| 🟢 Fully Audited | Complete manual review finished | 49 / 65 |
-| 🟡 Review Started | Fix landed, file not yet fully reviewed | 7 / 65 |
-| ⬜ Remaining | Not started | 9 / 65 |
+| 🟢 Fully Audited | Complete manual review finished | 60 / 65 |
+| 🟡 Review Started | Fix landed, file not yet fully reviewed | 1 / 65 |
+| ⬜ Remaining | Not started | 4 / 65 |
 | ⚪ Not Applicable | No business logic — types, enums, DI wiring, barrels | 33 |
 | | **Total backend source files** | **98** |
 
@@ -99,8 +99,8 @@ Backend Audit Complete
 `■■■■■■■■■■`
 
 **Phase 4 – Payment & Transaction**
-3 / 14
-`■■□□□□□□□□`
+14 / 14
+`■■■■■■■■■■`
 
 **Phase 5 – Merchant**
 6 / 6
@@ -141,26 +141,14 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 | 15 | | Scope merchant refresh tokens to merchant sessions and enforce expiry | `bc16b12` | Auth | Bug Fix | Fixed |
 | 16 | | Include role claim in merchant and employee JWTs so RolesGuard is functional | `af32185` | Auth | Bug Fix | Fixed |
 | 17 | | Scope merchant logout to the merchant's own session | `bd594b4` | Auth | Bug Fix | Fixed |
-| 18 | newest | Register global ValidationPipe; add missing validators to 13 DTOs | `39ada07` | Auth / Payment / Merchant | Bug Fix | Fixed |
+| 18 | | Register global ValidationPipe; add missing validators to 13 DTOs | `39ada07` | Auth / Payment / Merchant | Bug Fix | Fixed |
+| 19 | newest | Round remainingAmount to avoid float drift | `4c764a9` | Transaction | Bug Fix | Fixed |
 
 ---
 
 # Current Audit Queue
 
 Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 and ⚪ files are excluded — nothing further is required from them unless a future commit touches a 🟢 file (which resets it to 🟡).
-
-## Phase 4 — Payment & Transaction
-🟡 `payment/payment.service.ts` (5f27175, 47f8d87)
-🟡 `payment/state-machine/payment-state-machine.service.ts` (9fe3157)
-🟡 `payment/engine/payment-engine.service.ts` (fdd82e2, ad7eaf8)
-🟡 `payment/entities/payment-request.entity.ts` (556ba2f)
-🟡 `transaction/engine/transaction-engine.service.ts` (a06cef2, cda6725, c5273b7, 18733d6, 9fe3157)
-🟡 `transaction/entities/transaction.entity.ts` (556ba2f)
-⬜ `payment/payment.controller.ts`
-⬜ `payment/dto/payment-request-response.dto.ts`
-⬜ `payment/dto/transaction-response.dto.ts`
-⬜ `payment/engine/models/payment-execution-context.model.ts`
-⬜ `payment/engine/models/payment-execution-result.model.ts`
 
 ## Phase 6 — Database & Shared
 🟡 `shared/decimal.transformer.ts` (556ba2f)
@@ -209,17 +197,17 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Current Branch:** main
 
-**Last Commit:** `7852f89`
+**Last Commit:** `4c764a9`
 
-**Current Audit Phase:** Phase 4 – Payment & Transaction
+**Current Audit Phase:** Phase 6 – Database & Shared
 
-**Current File:** `payment/payment.service.ts`
+**Current File:** `shared/decimal.transformer.ts`
 
-**Last completed task:** Audited the remaining 12 Phase 3 files: `payment-provider.factory.ts` + `provider.registry.ts` (clean Map-based register/resolve, matches ADR-007), `provider-resolver.service.ts` (correct active-provider lookup, throws `NoActiveProviderException` when unset), `parampos.adapter.ts`/`.client.ts`/`.config.ts`/`.credentials.ts` (an honest, self-documented skeleton — every unimplemented method throws `NotImplementedException` rather than faking success; confirmed `ParamPosAdapter` is correctly registered in `payment-provider.module.ts`), `merchant-payment-provider.entity.ts`, and the 5 core model interfaces (type-only, no logic). No bugs found. **Phase 3 – Payment Provider complete (17/17).**
+**Last completed task:** Full manual review of all remaining Phase 4 files: `payment.service.ts` (identity resolution, ownership scoping, ADR-002/005 compliant), `payment-state-machine.service.ts` (transition table verified against business rules, ADR-011 confirmed by grepping the whole codebase for `.status =` — only this file writes it), `payment-engine.service.ts` (provider dispatch failure correctly transitions to FAILED via the state machine, `cancelPayment` uses a matching pessimistic lock to `transaction-engine.service.ts` so the two properly serialize), `payment-request.entity.ts`, `transaction.entity.ts` (no `updatedAt`, matches ADR-012 immutability), `payment.controller.ts`, and the remaining response DTOs/models (type-only). Found and fixed one real bug in `transaction-engine.service.ts`: `calculateRemainingAmount()` didn't round its subtraction, causing float-drift artifacts in the API response (`4c764a9`). **Phase 4 – Payment & Transaction complete (14/14).**
 
-**Current task:** Continuous audit mode — proceeding through Phase 4 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding; architecture-level gaps go to Deferred Findings.
+**Current task:** Continuous audit mode — proceeding through Phase 6 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding; architecture-level gaps go to Deferred Findings.
 
-**Next task:** Full audit of `payment/payment.service.ts` (already 🟡 from `5f27175`, `47f8d87`; needs complete manual review to reach 🟢). This is core financial lifecycle logic — audit carefully against ADR-001/002/005/011/012.
+**Next task:** Audit `shared/decimal.transformer.ts` (already 🟡 from `556ba2f`; needs complete manual review to reach 🟢). Only 5 files remain in the entire audit (Phase 6: 4, Phase 7: 1).
 
 **Blocked by:** Nothing — continuous audit mode active. Still stop and wait for explicit approval before committing any actual code fix (not board-only updates).
 
@@ -347,5 +335,14 @@ Record only important audit-board milestones.
 - Audited `merchant-payment-provider.entity.ts` and the 5 core model interfaces (`provider-error`, `provider-credentials`, `payment-result`, `provider-config`, `provider-context`): structurally correct, type-only files carry no logic. No issue, all marked 🟢.
 - **Phase 3 – Payment Provider complete (17/17).**
 - Current File advanced to `payment/payment.service.ts` (Phase 4).
+- Audited `payment.service.ts`: identity always resolved from JWT via `resolveIdentity()` (ADR-005), ownership scoping consistent across all methods, `remainingAmount` always computed via the engine and never stored (ADR-002), cancellation delegates to the engine without touching `paidAmount`. No issue, marked 🟢.
+- Audited `payment-state-machine.service.ts`: transition table matches business rules (e.g. `PARTIALLY_PAID → CANCELLED` allowed per ADR-012's "cancellation never touches paidAmount"; all terminal states have no outgoing transitions). Grepped the entire `modules/` tree for `.status =` assignments — confirmed this is the only file that ever writes it, verifying the ADR-011 claim in its own comment. No issue, marked 🟢.
+- Audited `payment-engine.service.ts`: provider dispatch failure correctly transitions to FAILED through the state machine (never a direct assignment); `cancelPayment()` takes a `pessimistic_write` lock on the same `PaymentRequest` row that `TransactionEngineService.createTransaction()` locks, confirming the two properly serialize as the code comments claim; all unimplemented capabilities (`generateQr`, `refundPayment`, `processNfc`, `getPaymentStatus`) honestly throw `NotImplementedException` and are unreachable from any current controller route. No issue, marked 🟢.
+- Audited `payment-request.entity.ts`: no `remainingAmount` column (ADR-002 confirmed), decimal precision/transformer correct, `employeeId` uses `SET NULL` on employee deletion to preserve financial history. No issue, marked 🟢.
+- Full review of `transaction-engine.service.ts`: idempotent provider-reference replay protection, pessimistic locking, and rounded `projectedPaid` all correct. Found and fixed a real bug: `calculateRemainingAmount()` subtracted `totalPaid` from `totalAmount` without rounding (unlike `projectedPaid` in the same file), producing float-drift artifacts (e.g. `19.9 - 19.1` → `0.7999999999999989`) directly in API responses on every partial payment. Fixed to round to the money scale, matching the existing pattern. Build passed, user approved, committed and pushed as `4c764a9`. Marked 🟢.
+- Audited `transaction.entity.ts`: no `updatedAt` column, matching ADR-012 immutability (Transactions are never updated). No issue, marked 🟢.
+- Audited `payment.controller.ts`, `payment-request-response.dto.ts`, `transaction-response.dto.ts`, `payment-execution-context.model.ts`, `payment-execution-result.model.ts`: correct route/guard wiring and type-only response shapes consistent with their producers. No issue, all marked 🟢.
+- **Phase 4 – Payment & Transaction complete (14/14).**
+- Current File advanced to `shared/decimal.transformer.ts` (Phase 6). Only Phase 6 (4 files) and Phase 7 (1 file) remain.
 
 Future sessions will append new entries here.
