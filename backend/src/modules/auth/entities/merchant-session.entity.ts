@@ -16,15 +16,6 @@ export class MerchantSession {
   @Column()
   refreshTokenHash: string;
 
-  @Column({ nullable: true })
-  deviceName?: string;
-
-  @Column({ nullable: true })
-  ipAddress?: string;
-
-  @Column({ nullable: true })
-  userAgent?: string;
-
   @CreateDateColumn()
   createdAt: Date;
 

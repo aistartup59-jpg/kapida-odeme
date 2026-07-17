@@ -23,9 +23,6 @@ export class Merchant {
   @Column({ nullable: true })
   passwordHash?: string;
 
-  @Column({ default: false })
-  isVerified: boolean;
-
   @OneToMany(() => Employee, (employee) => employee.merchant, { cascade: true })
   employees: Employee[];
 

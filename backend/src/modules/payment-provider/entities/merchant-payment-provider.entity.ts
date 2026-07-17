@@ -18,11 +18,8 @@ export class MerchantPaymentProvider {
   @Column({ type: 'enum', enum: ProviderType })
   providerType: ProviderType;
 
-  @Column({ default: true })
+  @Column({ default: false })
   isActive: boolean;
-
-  @Column({ type: 'int', default: 0 })
-  priority: number;
 
   @Column()
   credentialsReference: string;

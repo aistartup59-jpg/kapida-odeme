@@ -24,7 +24,7 @@ export class MerchantPaymentProviderRepository {
   }
 
   findAllByMerchant(merchantId: string): Promise<MerchantPaymentProvider[]> {
-    return this.repository.find({ where: { merchantId }, order: { priority: 'ASC', createdAt: 'ASC' } });
+    return this.repository.find({ where: { merchantId }, order: { createdAt: 'ASC' } });
   }
 
   findOneByMerchantAndId(merchantId: string, id: string): Promise<MerchantPaymentProvider | null> {

@@ -25,7 +25,6 @@ export class ProviderResolverService {
   async resolveActiveProvider(merchantId: string): Promise<ResolvedProvider> {
     const merchantProvider = await this.merchantPaymentProviderRepository.findOne({
       where: { merchantId, isActive: true },
-      order: { priority: 'ASC' },
     });
 
     if (!merchantProvider) {
