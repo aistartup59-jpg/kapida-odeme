@@ -60,7 +60,7 @@ Current File becomes:
 
 Backend Audit Complete
 
-**Current Activity:** **Backend Audit Complete — 66/66 auditable files fully reviewed, all 7 phases done.** Per the Resume Development chain, next is Backend Freeze, then Integration Tests, then Flutter/Website development. Awaiting explicit user direction on how to proceed.
+**Current Activity:** **Backend Audit Complete — 66/66 auditable files fully reviewed, all 7 phases done.** Post-completion cleanup (`d7e2771`, 2026-07-18): removed the 3 dead-code notes flagged during the audit — deleted the unused `CredentialMaskingService`, dropped `Merchant.isVerified`, `MerchantSession.deviceName`/`ipAddress`/`userAgent`, and `MerchantPaymentProvider.priority` (new migration `1784330000000-RemoveUnusedColumns.ts`), and fixed `MerchantPaymentProvider.isActive`'s DB default to `false` to match actual behavior. `PROJECT_STATUS.md` also corrected to stop listing the credential vault as production-ready. Per the Resume Development chain, next is Backend Freeze, then Integration Tests, then Flutter/Website development — picking up there in the next session.
 
 ---
 
@@ -143,7 +143,8 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 | 17 | | Scope merchant logout to the merchant's own session | `bd594b4` | Auth | Bug Fix | Fixed |
 | 18 | | Register global ValidationPipe; add missing validators to 13 DTOs | `39ada07` | Auth / Payment / Merchant | Bug Fix | Fixed |
 | 19 | | Round remainingAmount to avoid float drift | `4c764a9` | Transaction | Bug Fix | Fixed |
-| 20 | newest | Require DATABASE_PASSWORD at startup, no default | `59bf4cd` | Database | Hardening | Fixed |
+| 20 | | Require DATABASE_PASSWORD at startup, no default | `59bf4cd` | Database | Hardening | Fixed |
+| 21 | newest | Remove dead columns and unused CredentialMaskingService | `d7e2771` | Auth / Merchant / Payment Provider | Cleanup | Fixed |
 
 ---
 
@@ -191,19 +192,19 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Current Branch:** main
 
-**Last Commit:** `59bf4cd`
+**Last Commit:** `d7e2771`
 
 **Current Audit Phase:** — (complete)
 
 **Current File:** Backend Audit Complete
 
-**Last completed task:** Audited the last two files: `database/migrations/1783976400000-InitialSchema.ts` (verified column-for-column, FK-for-FK, and enum-for-enum against every entity; `up()`/`down()` dependency ordering both correct) and `health/health.controller.ts` (simple, unguarded, no logic to break). No issues in either. **Phase 6 (5/5) and Phase 7 (1/1) both complete — Backend Audit Complete, 66/66 files.**
+**Last completed task:** Post-completion cleanup of the 3 dead-code notes flagged during the audit: deleted unused `CredentialMaskingService` (no callers anywhere); dropped `Merchant.isVerified`, `MerchantSession.deviceName`/`ipAddress`/`userAgent`, and `MerchantPaymentProvider.priority` (none ever written or read by any code path — verified via a fresh codebase-wide grep before touching anything); fixed `MerchantPaymentProvider.isActive`'s DB default from `true` to `false` to match `register()`'s actual always-explicit behavior. Added migration `1784330000000-RemoveUnusedColumns.ts`. Build passed, user approved, committed and pushed as `d7e2771`. Also corrected `PROJECT_STATUS.md`, which listed the credential vault as production-ready despite its in-memory-only persistence gap (see Deferred Findings).
 
-**Current task:** None — the file-by-file audit loop defined by this board has finished. Awaiting user direction on next steps (Backend Freeze, Integration Tests, or something else).
+**Current task:** Session ending for the day per user instruction. Backend Audit remains complete (66/66).
 
-**Next task:** Per the Resume Development chain below: Backend Freeze, then Integration Tests, then Flutter/Website development — pending explicit user instruction.
+**Next task:** Per the Resume Development chain below: Backend Freeze, then Integration Tests, then Flutter/Website development — resume with this exact order next session.
 
-**Blocked by:** Explicit user direction on what comes next. No further code changes without it.
+**Blocked by:** Explicit user direction on when/how to start Backend Freeze. No further code changes until then.
 
 **Important reminders:**
 - Only `PaymentStateMachineService.applyTransition()` may change `PaymentRequest.status` (ADR-011).
@@ -347,5 +348,8 @@ Record only important audit-board milestones.
 - **BACKEND AUDIT COMPLETE — 66/66 auditable files fully reviewed across all 7 phases.**
 - Summary of this session's findings: 5 real bugs fixed (`bd594b4` logout session scoping, `af32185` missing JWT role claim, `39ada07` missing global ValidationPipe + 13 DTO validators, `4c764a9` remainingAmount float rounding, `59bf4cd` DATABASE_PASSWORD hardening); 1 architecture-level gap recorded in Deferred Findings (in-memory-only credential vault persistence); 3 harmless dead-code notes (unused `CredentialMaskingService`, unused `MerchantPaymentProvider.priority`, unused `Merchant.isVerified`/session device fields, unused `isActive: true` entity default) left as-is, not fixed.
 - Per the Resume Development chain, next is Backend Freeze, then Integration Tests, then Flutter/Website development — awaiting explicit user direction.
+- User asked to clean up the 3 dead-code notes and correct `PROJECT_STATUS.md` before ending the session. Deleted `CredentialMaskingService` (confirmed zero references anywhere via grep). Dropped `Merchant.isVerified`, `MerchantSession.deviceName`/`ipAddress`/`userAgent`, `MerchantPaymentProvider.priority` from their entities, and fixed `MerchantPaymentProvider.isActive`'s DB default from `true` to `false` (matching `register()`'s actual behavior) — all confirmed unreferenced anywhere else in the codebase before removal. Added migration `1784330000000-RemoveUnusedColumns.ts`. Build passed, user approved, committed and pushed as `d7e2771`.
+- Corrected `PROJECT_STATUS.md`: removed "Credential vault/encryption" from the production-ready list, since `credential-vault.service.ts` is in-memory only (see Deferred Findings above).
+- **Session ending for the day.** Next session resumes per the Resume Development chain: Backend Freeze → Integration Tests → Flutter/Website development, in that order.
 
 Future sessions will append new entries here.
