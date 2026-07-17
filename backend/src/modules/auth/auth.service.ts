@@ -112,6 +112,7 @@ export class AuthService {
     const accessToken = this.jwtService.sign({
       sub: merchant.id,
       type: 'merchant',
+      role: Role.OWNER,
     });
 
     return { accessToken, refreshToken };
@@ -146,7 +147,7 @@ export class AuthService {
       session.lastUsedAt = now;
       await this.merchantSessionRepository.save(session);
 
-      const accessToken = this.jwtService.sign({ sub: session.merchantId, type: 'merchant' });
+      const accessToken = this.jwtService.sign({ sub: session.merchantId, type: 'merchant', role: Role.OWNER });
 
       return { accessToken, refreshToken: newRefreshToken };
     }
@@ -388,6 +389,7 @@ export class AuthService {
     const accessToken = this.jwtService.sign({
       sub: employee.id,
       type: 'employee',
+      role: employee.role,
     });
 
     return { accessToken, refreshToken };
@@ -432,7 +434,7 @@ export class AuthService {
       session.lastUsedAt = now;
       await this.merchantSessionRepository.save(session);
 
-      const accessToken = this.jwtService.sign({ sub: employee.id, type: 'employee' });
+      const accessToken = this.jwtService.sign({ sub: employee.id, type: 'employee', role: employee.role });
 
       return { accessToken, refreshToken: newRefreshToken };
     }
