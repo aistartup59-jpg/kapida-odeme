@@ -48,7 +48,7 @@ This workflow is permanent.
 **Last Updated:** 2026-07-17
 **Current Phase:** Phase 2 – Authentication Core
 **Current Module:** Auth
-**Current File:** `auth/jwt-secret.ts`
+**Current File:** `auth/auth.controller.ts`
 
 **Current File Rule**
 
@@ -60,7 +60,7 @@ Current File becomes:
 
 Backend Audit Complete
 
-**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). Phase 1 – Authentication Security complete (5/5, all 🟢). In Phase 2 – Authentication Core: `auth.service.ts` fully reviewed end-to-end; found and fixed a real bug in `logout()` (see `bd594b4`), now marked 🟢.
+**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). Phase 1 – Authentication Security complete (5/5, all 🟢). In Phase 2: `auth.service.ts` bug fixed (`bd594b4`). `jwt-secret.ts`, `jwt-config.service.ts` reviewed, no issue. `main.ts` audit found a major bug — no `ValidationPipe` registered anywhere, so `class-validator` decorators were inert across the whole API. Fixed by registering a global `ValidationPipe` and adding validators to all 13 previously-bare DTOs (see `39ada07`), reviewed and greenlit in the same pass across Phases 2, 4, and 5.
 
 ---
 
@@ -69,16 +69,16 @@ Backend Audit Complete
 **Auditable Files: 65** (98 total backend source files, 33 Not Applicable)
 
 **🟢 Fully Audited**
-`🟢🟢🟢🟢🟢🟢⬜⬜⬜⬜` 6 / 65 — 9%
+`🟢🟢🟢🟢🟢🟢🟢🟢🟢⬜` 23 / 65 — 35%
 
 **🟡 Review Started** (includes files already at 🟢)
-`🟡🟡🟡🟡🟡🟡⬜⬜⬜⬜` 20 / 65 — 31%
+`🟡🟡🟡🟡🟡🟡🟡🟡🟡🟡` 34 / 65 — 52%
 
 | Status | Meaning | Count |
 |---|---|---:|
-| 🟢 Fully Audited | Complete manual review finished | 6 / 65 |
-| 🟡 Review Started | Fix landed, file not yet fully reviewed | 14 / 65 |
-| ⬜ Remaining | Not started | 45 / 65 |
+| 🟢 Fully Audited | Complete manual review finished | 23 / 65 |
+| 🟡 Review Started | Fix landed, file not yet fully reviewed | 11 / 65 |
+| ⬜ Remaining | Not started | 31 / 65 |
 | ⚪ Not Applicable | No business logic — types, enums, DI wiring, barrels | 33 |
 | | **Total backend source files** | **98** |
 
@@ -91,20 +91,20 @@ Backend Audit Complete
 `■■■■■■■■■■`
 
 **Phase 2 – Authentication Core**
-1 / 18
-`■□□□□□□□□□`
+13 / 18
+`■■■■■■■□□□`
 
 **Phase 3 – Payment Provider**
 0 / 17
 `□□□□□□□□□□`
 
 **Phase 4 – Payment & Transaction**
-0 / 14
-`□□□□□□□□□□`
+3 / 14
+`■■□□□□□□□□`
 
 **Phase 5 – Merchant**
-0 / 6
-`□□□□□□□□□□`
+2 / 6
+`■■■□□□□□□□`
 
 **Phase 6 – Database & Shared**
 0 / 4
@@ -140,7 +140,8 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 | 14 | | Eliminate floating-point payment state drift | `a06cef2` | Transaction | Bug Fix | Fixed |
 | 15 | | Scope merchant refresh tokens to merchant sessions and enforce expiry | `bc16b12` | Auth | Bug Fix | Fixed |
 | 16 | | Include role claim in merchant and employee JWTs so RolesGuard is functional | `af32185` | Auth | Bug Fix | Fixed |
-| 17 | newest | Scope merchant logout to the merchant's own session | `bd594b4` | Auth | Bug Fix | Fixed |
+| 17 | | Scope merchant logout to the merchant's own session | `bd594b4` | Auth | Bug Fix | Fixed |
+| 18 | newest | Register global ValidationPipe; add missing validators to 13 DTOs | `39ada07` | Auth / Payment / Merchant | Bug Fix | Fixed |
 
 ---
 
@@ -149,23 +150,11 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 and ⚪ files are excluded — nothing further is required from them unless a future commit touches a 🟢 file (which resets it to 🟡).
 
 ## Phase 2 — Authentication Core
-🟡 `auth/jwt-secret.ts` (7373276)
-🟡 `auth/jwt-config.service.ts` (7373276)
-🟡 `main.ts` (7373276)
 ⬜ `auth/auth.controller.ts`
 ⬜ `auth/password-hashing.service.ts`
 ⬜ `auth/entities/merchant.entity.ts`
 ⬜ `auth/entities/merchant-session.entity.ts`
 ⬜ `auth/entities/employee.entity.ts`
-⬜ `auth/dto/merchant-login.dto.ts`
-⬜ `auth/dto/employee-login.dto.ts`
-⬜ `auth/dto/create-merchant.dto.ts`
-⬜ `auth/dto/create-employee.dto.ts`
-⬜ `auth/dto/accept-invitation.dto.ts`
-⬜ `auth/dto/reset-password.dto.ts`
-⬜ `auth/dto/forgot-password.dto.ts`
-⬜ `auth/dto/set-password.dto.ts`
-⬜ `auth/dto/refresh-token.dto.ts`
 
 ## Phase 3 — Payment Provider
 🟡 `payment-provider/security/credential-encryption.service.ts` (1125935)
@@ -194,11 +183,8 @@ Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 an
 🟡 `transaction/engine/transaction-engine.service.ts` (a06cef2, cda6725, c5273b7, 18733d6, 9fe3157)
 🟡 `transaction/entities/transaction.entity.ts` (556ba2f)
 ⬜ `payment/payment.controller.ts`
-⬜ `payment/dto/create-payment-request.dto.ts`
-⬜ `payment/dto/create-transaction-request.dto.ts`
 ⬜ `payment/dto/payment-request-response.dto.ts`
 ⬜ `payment/dto/transaction-response.dto.ts`
-⬜ `payment/dto/list-payment-requests-query.dto.ts`
 ⬜ `payment/engine/models/payment-execution-context.model.ts`
 ⬜ `payment/engine/models/payment-execution-result.model.ts`
 
@@ -206,8 +192,6 @@ Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 an
 🟡 `merchant/merchant-payment-provider.service.ts` (033443b, 47f8d87)
 🟡 `merchant/repositories/merchant-payment-provider.repository.ts` (033443b)
 ⬜ `merchant/merchant-payment-provider.controller.ts`
-⬜ `merchant/dto/create-merchant-payment-provider.dto.ts`
-⬜ `merchant/dto/update-merchant-payment-provider.dto.ts`
 ⬜ `merchant/dto/merchant-payment-provider-response.dto.ts`
 
 ## Phase 6 — Database & Shared
@@ -257,17 +241,17 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Current Branch:** main
 
-**Last Commit:** `bd594b4`
+**Last Commit:** `39ada07`
 
 **Current Audit Phase:** Phase 2 – Authentication Core
 
-**Current File:** `auth/jwt-secret.ts`
+**Current File:** `auth/auth.controller.ts`
 
-**Last completed task:** Full manual review of `auth/auth.service.ts`. Found and fixed a real bug: `logout()` (merchant logout) looked up the most recently used non-revoked session by `merchantId` only, with no `employeeId: IsNull()` filter — since employee sessions share the same `merchantId`, a merchant's logout call could revoke an unrelated employee's session instead of their own whenever that employee was more recently active. Fixed to match the scoping already used by `refreshToken()` and `logoutEmployee()`. Build passed, user approved, committed and pushed as `bd594b4`. `auth.service.ts` marked 🟢 Fully Audited.
+**Last completed task:** Audited `jwt-secret.ts` and `jwt-config.service.ts` (no issues). Audited `main.ts` and found a major, codebase-wide bug: no `ValidationPipe` was ever registered (not in `main.ts`, not via `APP_PIPE` in `app.module.ts`), so `class-validator` decorators were never enforced — only `create-merchant.dto.ts` had any decorators, and even those were inert. Fixed by registering a global `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` and adding validators to all 13 previously-bare DTOs (across Phases 2, 4, and 5) so the stricter pipe doesn't strip/reject legitimate fields. Enum-backed fields kept `@IsString()` instead of `@IsEnum()` to preserve existing service-layer normalization and custom error messages. Build passed, user approved, committed and pushed as `39ada07`. All 17 touched files reviewed and marked 🟢 in the same pass.
 
 **Current task:** Continuous audit mode — proceeding through Phase 2 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding.
 
-**Next task:** Audit `auth/jwt-secret.ts` (already 🟡 from `7373276`; needs complete manual review to reach 🟢).
+**Next task:** Audit `auth/auth.controller.ts`.
 
 **Blocked by:** Nothing — continuous audit mode active. Still stop and wait for explicit approval before committing any actual code fix (not board-only updates).
 
@@ -374,5 +358,8 @@ Record only important audit-board milestones.
 - Current File advanced to `auth/auth.service.ts` (Phase 2).
 - Full manual review of `auth/auth.service.ts`: found `logout()` (merchant logout) revoked the most-recently-used session by `merchantId` alone, with no `employeeId: IsNull()` filter, so it could revoke an unrelated employee's session instead of the merchant's own whenever that employee was more recently active. Fixed to match `refreshToken()`/`logoutEmployee()` scoping. Build passed, user approved, committed and pushed as `bd594b4`. Marked 🟢.
 - Current File advanced to `auth/jwt-secret.ts` (Phase 2).
+- Audited `jwt-secret.ts` and `jwt-config.service.ts`: required-secret pattern correct, sensible token TTL defaults. No issues, both marked 🟢.
+- Audited `main.ts`: found a major bug — no `ValidationPipe` registered anywhere in the app (`main.ts` or `app.module.ts`), so `class-validator` decorators were never enforced. A codebase-wide scan showed only `create-merchant.dto.ts` (of 17 request DTOs) had any decorators at all, and even that one was inert. Registering a naive `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` alone would have broken nearly every endpoint, since `whitelist` strips/rejects any DTO property with zero decorators. User chose the full fix: added `class-validator` decorators to all 13 previously-bare DTOs (auth, payment, merchant), preserving existing service-layer enum normalization by using `@IsString()` rather than `@IsEnum()` on enum-backed fields. Build passed, user approved, committed and pushed as `39ada07`. All 17 touched files (main.ts + 13 fixed DTOs + `create-merchant.dto.ts` + `jwt-secret.ts` + `jwt-config.service.ts`) reviewed and marked 🟢, including DTOs in Phase 4 and Phase 5 completed out of order as part of this fix.
+- Current File advanced to `auth/auth.controller.ts` (Phase 2).
 
 Future sessions will append new entries here.
