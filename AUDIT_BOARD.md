@@ -46,9 +46,9 @@ This workflow is permanent.
 
 **Project:** Kapıda Ödeme / PayALS
 **Last Updated:** 2026-07-17
-**Current Phase:** Phase 3 – Payment Provider
-**Current Module:** Payment Provider
-**Current File:** `payment-provider/factory/payment-provider.factory.ts`
+**Current Phase:** Phase 4 – Payment & Transaction
+**Current Module:** Payment & Transaction
+**Current File:** `payment/payment.service.ts`
 
 **Current File Rule**
 
@@ -60,7 +60,7 @@ Current File becomes:
 
 Backend Audit Complete
 
-**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). **Phase 1 complete (5/5). Phase 2 complete (18/18). Phase 5 – Merchant complete (6/6).** In Phase 3 – Payment Provider (5/17 so far): credential encryption/vault/masking reviewed (vault persistence gap recorded in Deferred Findings); while verifying `CredentialMaskingService` had no unmasked-leak risk, fully reviewed the whole `merchant-payment-provider` module (service, controller, repository, entity, response DTO) — no bugs, completing Phase 5 out of order. Noted two harmless YAGNI-style dead fields (`MerchantPaymentProvider.priority`, never set by any code path; `isActive` entity default of `true` never actually exercised since `register()` always overrides it) — not bugs, mentioned to user, not fixed.
+**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). **Phase 1 complete (5/5). Phase 2 complete (18/18). Phase 3 – Payment Provider complete (17/17). Phase 5 – Merchant complete (6/6).** Credential vault persistence gap recorded in Deferred Findings. ParamPOS adapter/client confirmed to be an honest, self-documented skeleton (throws `NotImplementedException` rather than faking success) — not a bug. Now starting Phase 4 – Payment & Transaction, the core financial lifecycle module; audit carefully given ADR-011/ADR-012 constraints.
 
 ---
 
@@ -69,16 +69,16 @@ Backend Audit Complete
 **Auditable Files: 65** (98 total backend source files, 33 Not Applicable)
 
 **🟢 Fully Audited**
-`🟢🟢🟢🟢🟢⬜⬜⬜⬜⬜` 36 / 65 — 55%
+`🟢🟢🟢🟢🟢🟢🟢⬜⬜⬜` 49 / 65 — 75%
 
 **🟡 Review Started** (includes files already at 🟢)
-`🟡🟡🟡🟡🟡🟡⬜⬜⬜⬜` 43 / 65 — 66%
+`🟡🟡🟡🟡🟡🟡🟡🟡⬜⬜` 56 / 65 — 86%
 
 | Status | Meaning | Count |
 |---|---|---:|
-| 🟢 Fully Audited | Complete manual review finished | 36 / 65 |
+| 🟢 Fully Audited | Complete manual review finished | 49 / 65 |
 | 🟡 Review Started | Fix landed, file not yet fully reviewed | 7 / 65 |
-| ⬜ Remaining | Not started | 22 / 65 |
+| ⬜ Remaining | Not started | 9 / 65 |
 | ⚪ Not Applicable | No business logic — types, enums, DI wiring, barrels | 33 |
 | | **Total backend source files** | **98** |
 
@@ -95,8 +95,8 @@ Backend Audit Complete
 `■■■■■■■■■■`
 
 **Phase 3 – Payment Provider**
-5 / 17
-`■■■□□□□□□□`
+17 / 17
+`■■■■■■■■■■`
 
 **Phase 4 – Payment & Transaction**
 3 / 14
@@ -148,20 +148,6 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 # Current Audit Queue
 
 Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 and ⚪ files are excluded — nothing further is required from them unless a future commit touches a 🟢 file (which resets it to 🟡).
-
-## Phase 3 — Payment Provider
-⬜ `payment-provider/factory/payment-provider.factory.ts`
-⬜ `payment-provider/registry/provider.registry.ts`
-⬜ `payment-provider/resolver/provider-resolver.service.ts`
-⬜ `payment-provider/adapters/parampos/parampos.adapter.ts`
-⬜ `payment-provider/adapters/parampos/parampos.client.ts`
-⬜ `payment-provider/adapters/parampos/parampos.config.ts`
-⬜ `payment-provider/adapters/parampos/parampos.credentials.ts`
-⬜ `payment-provider/core/provider-error.model.ts`
-⬜ `payment-provider/core/provider-credentials.model.ts`
-⬜ `payment-provider/core/payment-result.model.ts`
-⬜ `payment-provider/core/provider-config.model.ts`
-⬜ `payment-provider/core/provider-context.model.ts`
 
 ## Phase 4 — Payment & Transaction
 🟡 `payment/payment.service.ts` (5f27175, 47f8d87)
@@ -223,17 +209,17 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Current Branch:** main
 
-**Last Commit:** `9ce5aac`
+**Last Commit:** `7852f89`
 
-**Current Audit Phase:** Phase 3 – Payment Provider
+**Current Audit Phase:** Phase 4 – Payment & Transaction
 
-**Current File:** `payment-provider/factory/payment-provider.factory.ts`
+**Current File:** `payment/payment.service.ts`
 
-**Last completed task:** Audited `credential-masking.service.ts` — implemented correctly but unused anywhere in the codebase; verified this is not a leak risk by fully reviewing the `merchant-payment-provider` module (service, controller, repository, entity, response DTO), confirming `toResponse()` never includes credentials in API output. No bugs found in any of these; all marked 🟢, completing **Phase 5 – Merchant (6/6)** out of order. Noted two harmless dead fields for future cleanup (not fixed, not bugs): `MerchantPaymentProvider.priority` is never set by any code path (matches the question raised in the stray text previously removed from `PROJECT_SPEC.md` — likely that text was accidental leftover audit output pasted into the wrong file, not a malicious injection); `isActive` entity default of `true` is never actually exercised since `register()` always explicitly sets `false`.
+**Last completed task:** Audited the remaining 12 Phase 3 files: `payment-provider.factory.ts` + `provider.registry.ts` (clean Map-based register/resolve, matches ADR-007), `provider-resolver.service.ts` (correct active-provider lookup, throws `NoActiveProviderException` when unset), `parampos.adapter.ts`/`.client.ts`/`.config.ts`/`.credentials.ts` (an honest, self-documented skeleton — every unimplemented method throws `NotImplementedException` rather than faking success; confirmed `ParamPosAdapter` is correctly registered in `payment-provider.module.ts`), `merchant-payment-provider.entity.ts`, and the 5 core model interfaces (type-only, no logic). No bugs found. **Phase 3 – Payment Provider complete (17/17).**
 
-**Current task:** Continuous audit mode — proceeding through Phase 3 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding; architecture-level gaps go to Deferred Findings.
+**Current task:** Continuous audit mode — proceeding through Phase 4 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding; architecture-level gaps go to Deferred Findings.
 
-**Next task:** Audit `payment-provider/factory/payment-provider.factory.ts`.
+**Next task:** Full audit of `payment/payment.service.ts` (already 🟡 from `5f27175`, `47f8d87`; needs complete manual review to reach 🟢). This is core financial lifecycle logic — audit carefully against ADR-001/002/005/011/012.
 
 **Blocked by:** Nothing — continuous audit mode active. Still stop and wait for explicit approval before committing any actual code fix (not board-only updates).
 
@@ -355,5 +341,11 @@ Record only important audit-board milestones.
 - Audited `credential-masking.service.ts`: correctly implemented (masks all but last 4 chars) but not referenced anywhere in the codebase. To confirm this isn't hiding a real leak, fully reviewed the `merchant-payment-provider` module: `merchant-payment-provider.service.ts` (vault update/delete ordering is failure-safe, `activate()` is transactionally atomic), `.controller.ts` (all routes correctly guarded, merchant-only via `resolveMerchantId`), `.repository.ts`, `merchant-payment-provider.entity.ts`, and `merchant-payment-provider-response.dto.ts` — confirmed `toResponse()` never includes credentials in API output, so the missing masking has no actual impact. No bugs found in any of these six files; all marked 🟢, completing **Phase 5 – Merchant (6/6)** out of order.
 - Noted two harmless dead fields, not fixed (not bugs): `MerchantPaymentProvider.priority` is a DB column never set by any code path — matches the exact question raised in the stray text previously removed from `PROJECT_SPEC.md`, suggesting that text was accidental leftover audit output pasted into the wrong file rather than a malicious prompt injection. `isActive` entity default of `true` is never exercised since `register()` always explicitly sets `false`.
 - Current File advanced to `payment-provider/factory/payment-provider.factory.ts` (Phase 3).
+- Audited `payment-provider.factory.ts` and `provider.registry.ts`: simple Map-based register/resolve, throws `NotFoundException` for unregistered providers, matches ADR-007 (new providers need only an adapter + registration). No issue, both marked 🟢.
+- Audited `provider-resolver.service.ts`: looks up the merchant's `isActive: true` provider, throws `NoActiveProviderException` if none configured. No issue, marked 🟢.
+- Audited `parampos.adapter.ts`, `.client.ts`, `.config.ts`, `.credentials.ts`: adapter is an honest, self-documented skeleton — every method throws `NotImplementedException` pending the official ParamPOS API contract, rather than faking success. `client.post()` has no request timeout, but it's currently unreachable dead code (the adapter always throws before calling it), so not a live bug — worth remembering once the sandbox contract lands. Confirmed `ParamPosAdapter` is registered in `payment-provider.module.ts`'s providers array (self-registers with `ProviderRegistry` on construction, correctly wired). No issue, all four marked 🟢.
+- Audited `merchant-payment-provider.entity.ts` and the 5 core model interfaces (`provider-error`, `provider-credentials`, `payment-result`, `provider-config`, `provider-context`): structurally correct, type-only files carry no logic. No issue, all marked 🟢.
+- **Phase 3 – Payment Provider complete (17/17).**
+- Current File advanced to `payment/payment.service.ts` (Phase 4).
 
 Future sessions will append new entries here.
