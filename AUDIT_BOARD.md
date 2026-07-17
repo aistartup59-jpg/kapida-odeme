@@ -46,9 +46,9 @@ This workflow is permanent.
 
 **Project:** Kapıda Ödeme / PayALS
 **Last Updated:** 2026-07-17
-**Current Phase:** Phase 2 – Authentication Core
-**Current Module:** Auth
-**Current File:** `auth/auth.controller.ts`
+**Current Phase:** Phase 3 – Payment Provider
+**Current Module:** Payment Provider
+**Current File:** `payment-provider/security/credential-encryption.service.ts`
 
 **Current File Rule**
 
@@ -60,7 +60,7 @@ Current File becomes:
 
 Backend Audit Complete
 
-**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). Phase 1 – Authentication Security complete (5/5, all 🟢). In Phase 2: `auth.service.ts` bug fixed (`bd594b4`). `jwt-secret.ts`, `jwt-config.service.ts` reviewed, no issue. `main.ts` audit found a major bug — no `ValidationPipe` registered anywhere, so `class-validator` decorators were inert across the whole API. Fixed by registering a global `ValidationPipe` and adding validators to all 13 previously-bare DTOs (see `39ada07`), reviewed and greenlit in the same pass across Phases 2, 4, and 5.
+**Current Activity:** Continuous audit mode (per user instruction 2026-07-18: proceed through no-issue files autonomously, commit without asking, only interrupt for real bugs). **Phase 1 – Authentication Security complete (5/5). Phase 2 – Authentication Core complete (18/18).** Two real bugs found and fixed in Phase 2: `logout()` session scoping (`bd594b4`) and the missing global `ValidationPipe` (`39ada07`, which also completed 5 DTOs out of order in Phase 4/5). Now starting Phase 3 – Payment Provider.
 
 ---
 
@@ -69,16 +69,16 @@ Backend Audit Complete
 **Auditable Files: 65** (98 total backend source files, 33 Not Applicable)
 
 **🟢 Fully Audited**
-`🟢🟢🟢🟢🟢🟢🟢🟢🟢⬜` 23 / 65 — 35%
+`🟢🟢🟢🟢🟢🟢🟢🟢🟢🟢` 27 / 65 — 42%
 
 **🟡 Review Started** (includes files already at 🟢)
-`🟡🟡🟡🟡🟡🟡🟡🟡🟡🟡` 34 / 65 — 52%
+`🟡🟡🟡🟡🟡🟡🟡🟡🟡🟡` 38 / 65 — 58%
 
 | Status | Meaning | Count |
 |---|---|---:|
-| 🟢 Fully Audited | Complete manual review finished | 23 / 65 |
+| 🟢 Fully Audited | Complete manual review finished | 27 / 65 |
 | 🟡 Review Started | Fix landed, file not yet fully reviewed | 11 / 65 |
-| ⬜ Remaining | Not started | 31 / 65 |
+| ⬜ Remaining | Not started | 27 / 65 |
 | ⚪ Not Applicable | No business logic — types, enums, DI wiring, barrels | 33 |
 | | **Total backend source files** | **98** |
 
@@ -91,8 +91,8 @@ Backend Audit Complete
 `■■■■■■■■■■`
 
 **Phase 2 – Authentication Core**
-13 / 18
-`■■■■■■■□□□`
+18 / 18
+`■■■■■■■■■■`
 
 **Phase 3 – Payment Provider**
 0 / 17
@@ -148,13 +148,6 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 # Current Audit Queue
 
 Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 and ⚪ files are excluded — nothing further is required from them unless a future commit touches a 🟢 file (which resets it to 🟡).
-
-## Phase 2 — Authentication Core
-⬜ `auth/auth.controller.ts`
-⬜ `auth/password-hashing.service.ts`
-⬜ `auth/entities/merchant.entity.ts`
-⬜ `auth/entities/merchant-session.entity.ts`
-⬜ `auth/entities/employee.entity.ts`
 
 ## Phase 3 — Payment Provider
 🟡 `payment-provider/security/credential-encryption.service.ts` (1125935)
@@ -241,17 +234,17 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Current Branch:** main
 
-**Last Commit:** `39ada07`
+**Last Commit:** `ab800e5`
 
-**Current Audit Phase:** Phase 2 – Authentication Core
+**Current Audit Phase:** Phase 3 – Payment Provider
 
-**Current File:** `auth/auth.controller.ts`
+**Current File:** `payment-provider/security/credential-encryption.service.ts`
 
-**Last completed task:** Audited `jwt-secret.ts` and `jwt-config.service.ts` (no issues). Audited `main.ts` and found a major, codebase-wide bug: no `ValidationPipe` was ever registered (not in `main.ts`, not via `APP_PIPE` in `app.module.ts`), so `class-validator` decorators were never enforced — only `create-merchant.dto.ts` had any decorators, and even those were inert. Fixed by registering a global `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` and adding validators to all 13 previously-bare DTOs (across Phases 2, 4, and 5) so the stricter pipe doesn't strip/reject legitimate fields. Enum-backed fields kept `@IsString()` instead of `@IsEnum()` to preserve existing service-layer normalization and custom error messages. Build passed, user approved, committed and pushed as `39ada07`. All 17 touched files reviewed and marked 🟢 in the same pass.
+**Last completed task:** Audited `auth.controller.ts` (route/guard wiring all correct), `password-hashing.service.ts` (scrypt + random salt + `timingSafeEqual`, correct), `merchant.entity.ts`, `merchant-session.entity.ts`, `employee.entity.ts` (structurally correct; a few unused columns like `isVerified`, `deviceName`/`ipAddress`/`userAgent` noted but harmless, not bugs). No issues found. **Phase 2 – Authentication Core complete (18/18).**
 
-**Current task:** Continuous audit mode — proceeding through Phase 2 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding.
+**Current task:** Continuous audit mode — proceeding through Phase 3 without stopping for no-issue files (per user instruction 2026-07-18). Only bugs get reported before proceeding.
 
-**Next task:** Audit `auth/auth.controller.ts`.
+**Next task:** Audit `payment-provider/security/credential-encryption.service.ts` (already 🟡 from `1125935`; needs complete manual review to reach 🟢). This module handles merchant provider credential encryption — audit carefully.
 
 **Blocked by:** Nothing — continuous audit mode active. Still stop and wait for explicit approval before committing any actual code fix (not board-only updates).
 
@@ -361,5 +354,10 @@ Record only important audit-board milestones.
 - Audited `jwt-secret.ts` and `jwt-config.service.ts`: required-secret pattern correct, sensible token TTL defaults. No issues, both marked 🟢.
 - Audited `main.ts`: found a major bug — no `ValidationPipe` registered anywhere in the app (`main.ts` or `app.module.ts`), so `class-validator` decorators were never enforced. A codebase-wide scan showed only `create-merchant.dto.ts` (of 17 request DTOs) had any decorators at all, and even that one was inert. Registering a naive `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` alone would have broken nearly every endpoint, since `whitelist` strips/rejects any DTO property with zero decorators. User chose the full fix: added `class-validator` decorators to all 13 previously-bare DTOs (auth, payment, merchant), preserving existing service-layer enum normalization by using `@IsString()` rather than `@IsEnum()` on enum-backed fields. Build passed, user approved, committed and pushed as `39ada07`. All 17 touched files (main.ts + 13 fixed DTOs + `create-merchant.dto.ts` + `jwt-secret.ts` + `jwt-config.service.ts`) reviewed and marked 🟢, including DTOs in Phase 4 and Phase 5 completed out of order as part of this fix.
 - Current File advanced to `auth/auth.controller.ts` (Phase 2).
+- Audited `auth.controller.ts`: every route's guard/decorator combination checked against its intended access level (public: register/login/refresh/forgot-reset-password/accept-invitation/set-password; protected: logout/employee-create/employee-refresh/employee-logout). All correct. No issue found, marked 🟢.
+- Audited `password-hashing.service.ts`: scrypt with random 16-byte salt per hash, `timingSafeEqual` for constant-time comparison. No issue found, marked 🟢.
+- Audited `merchant.entity.ts`, `merchant-session.entity.ts`, `employee.entity.ts`: unique constraints, cascades, and relations all consistent with service-layer usage. Noted (not a bug) that `Merchant.isVerified` and `MerchantSession.deviceName`/`ipAddress`/`userAgent` are defined but never written or read anywhere — dead columns, no behavioral impact. All three marked 🟢.
+- **Phase 2 – Authentication Core complete (18/18).**
+- Current File advanced to `payment-provider/security/credential-encryption.service.ts` (Phase 3).
 
 Future sessions will append new entries here.
