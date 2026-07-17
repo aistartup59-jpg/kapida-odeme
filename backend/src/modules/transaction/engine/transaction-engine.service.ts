@@ -99,7 +99,7 @@ export class TransactionEngineService implements TransactionEngine {
     }
 
     const totalPaid = await this.sumTransactionAmounts(paymentRequestId);
-    const remainingAmount = Math.max(paymentRequest.totalAmount - totalPaid, 0);
+    const remainingAmount = Math.round(Math.max(paymentRequest.totalAmount - totalPaid, 0) * 100) / 100;
 
     return { success: true, data: remainingAmount };
   }
