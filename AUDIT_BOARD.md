@@ -176,7 +176,7 @@ Backend Audit Complete   ✅ reached 2026-07-18
         ↓
 Backend Freeze            ✅ declared 2026-07-19
         ↓
-Integration Tests         ← we are here
+Backend Integration Test Suite   ← we are here (planned 2026-07-19, starts next session)
         ↓
 Flutter Development
         ↓
@@ -212,6 +212,85 @@ Resume order once Integration Tests pass: Flutter Development → Website Develo
 
 ---
 
+# Backend Integration Test Suite
+
+**Status:** Planned — scope agreed with the user on 2026-07-19. Implementation starts next session ("yarın başlayalım").
+
+## Stack
+
+No new frameworks — using what a NestJS project brings by default:
+
+- **Jest** — test runner
+- **Supertest** — HTTP endpoint (integration) testing
+- **Test database** — a dedicated Postgres DB, isolated from dev data
+
+**Readiness check (2026-07-19):** none of this is actually installed in this repo yet — verified before writing this plan, don't assume it's already there next session:
+- `backend/package.json` has **zero** test tooling: no `jest`, `supertest`, `@nestjs/testing`, `ts-jest`/`@types/jest`, and no `test` script at all.
+- No `backend/test/` folder exists. No `*.spec.ts` file exists anywhere in the repo.
+- `docker-compose.yml` defines a single Postgres service/DB (`kapida_dev`) — no separate test database yet.
+
+**First task next session, before writing any test:** install the dev dependencies above, add a `test` script to `package.json`, and stand up an isolated test DB (second `docker-compose` service, e.g. `kapida_test`, or an env-driven override — decide with the user, don't guess).
+
+## Scope — by phase
+
+**Phase 1 — Authentication:** Merchant Register, Merchant Login, Refresh Token, Logout, Employee Invite, Employee Accept, Employee Login, Authorization (Role Guard).
+
+**Phase 2 — Merchant Provider:** Provider Create, Provider Update, Provider Activate, Active Provider Resolve.
+
+**Phase 3 — Payment Creation:** Payment Create, Validation, JWT ownership, Employee ownership.
+
+**Phase 4 — Payment Lifecycle:** Pending, Partial Paid, Paid, Failed, Cancelled — every state machine transition.
+
+**Phase 5 — Transaction:** Cash, NFC, QR, Payment Link, Multiple Transactions, Hybrid Payment, Remaining Amount, paidAmount, paidAt.
+
+**Phase 6 — Provider:** ParamPOS Adapter, Mock Provider, Provider Factory, Provider Dispatch, Provider Failure.
+
+**Phase 7 — Cancellation:** Cancel, Cancel after Paid, Cancel after Partial, Invalid Cancel.
+
+**Phase 8 — Security:** Unauthorized, Wrong Merchant, Wrong Employee, JWT, Refresh, Expired Token, Forbidden.
+
+**Phase 9 — Race Conditions (highest priority):** every bug fixed during the backend audit gets a regression test here — Concurrent Payment, Concurrent Cancel, Overpayment, Provider Activation Race, Idempotency, Floating Point / Decimal rounding, Transaction Atomicity.
+
+## Folder structure
+
+```
+backend/
+  test/
+    integration/
+      auth/
+      merchant/
+      payment/
+      transaction/
+      provider/
+      lifecycle/
+      security/
+      race/
+    helpers/
+    fixtures/
+    factories/
+    utils/
+```
+
+## Test levels
+
+```
+Unit Test
+    ↓
+Integration Test   ← this phase
+    ↓
+Manual Test
+    ↓
+Flutter
+    ↓
+Beta
+```
+
+## Success criterion
+
+When this phase is done, every critical backend workflow is verified by automated tests — if the backend breaks six months from now, the tests catch it immediately instead of a user in production. Completing it closes out all four backend milestones (Core Backend ✅, Audit ✅, Freeze ✅, Integration Tests ✅) and is the gate before Flutter development starts.
+
+---
+
 # Session Notes
 
 **Current Branch:** main
@@ -224,11 +303,11 @@ Resume order once Integration Tests pass: Flutter Development → Website Develo
 
 **Last completed task:** Pre-freeze QR verification, requested by the user before starting Backend Freeze. Confirmed the QR design already matches ADR-003 (single real Bank QR per PaymentRequest via `provider.generateBankQR()`, provider-agnostic response shape with no bank-specific fields, never derived from a Payment Link). Found the provider's `qrData`/`expiresAt` were fetched in `payment-engine.service.ts` and discarded — never reaching the API response, so even a completed ParamPOS implementation would have no way to surface the QR to the merchant/employee app. User chose to return it ephemerally on the create response rather than persist it (mirrors ADR-002's derive-don't-store treatment of `remainingAmount`). Threaded `qrData`/`qrExpiresAt` through `PaymentExecutionResult` → new `CreatePaymentEngineResult` → `PaymentRequestResponseDto`; `createPaymentRequest` now returns the DTO (via `toResponse()`) instead of the raw entity, consistent with the other endpoints. Build passed, user approved, committed and pushed as `92dc4bb`.
 
-**Current task:** Backend Freeze declared (see Backend Freeze Rules above). No further backend features/endpoints/refactors/architecture changes until the user lifts the freeze.
+**Current task:** Backend Freeze declared (see Backend Freeze Rules above). No further backend features/endpoints/refactors/architecture changes until the user lifts the freeze. Backend Integration Test Suite scope agreed with the user and recorded above (see that section) — planning only, no code written yet.
 
-**Next task:** Integration Tests. Scope/framework/test plan not yet defined — needs explicit user direction before starting (what to cover, what tooling, where tests live) per the Decision Rule.
+**Next task:** Start the Backend Integration Test Suite next session, per the user's explicit "yarın başlayalım." First step: install Jest/Supertest/@nestjs/testing dev deps, add a `test` script, and set up an isolated test DB — then begin Phase 1 (Authentication) tests per the folder structure above.
 
-**Blocked by:** Awaiting user direction on the Integration Tests plan.
+**Blocked by:** Nothing — plan is agreed, waiting for the next session to begin implementation.
 
 **Important reminders:**
 - Only `PaymentStateMachineService.applyTransition()` may change `PaymentRequest.status` (ADR-011).
@@ -386,6 +465,9 @@ Record only important audit-board milestones.
 - Build passed (`tsc --noEmit` and `npm run build`), user approved, committed and pushed as `92dc4bb`.
 - Asked the user to define "Backend Freeze" concretely, since it was undefined in any project doc. User's definition: the backend is feature-complete (audited, core bugs fixed) and now enters verification-only mode — no new features, endpoints, refactors, or architecture changes; only integration tests, performance checks, and critical bug fixes are allowed, so Flutter/Website can build against a stable API contract.
 - **Declared Backend Freeze**, recorded as a new "Backend Freeze Rules" section in this file. Resume Development chain updated: Backend Freeze ✅, Current position moved to Integration Tests.
-- Next session (or continuation of this one) needs the user's direction on the Integration Tests plan (scope, tooling, location) before starting, per the Decision Rule — not yet defined.
+- User provided the full Integration Test plan: stack (Jest + Supertest + a dedicated test DB, no new frameworks), a 9-phase scope (Authentication, Merchant Provider, Payment Creation, Payment Lifecycle, Transaction, Provider, Cancellation, Security, Race Conditions), a `backend/test/integration/{...}` folder structure, and the test-level pipeline (Unit → Integration → Manual → Flutter → Beta). Recorded verbatim as the new "Backend Integration Test Suite" section above.
+- Verified current readiness before committing to the plan: `backend/package.json` has no test tooling at all (no Jest, Supertest, `@nestjs/testing`, `test` script) and no `test/` folder or `*.spec.ts` file exists yet; `docker-compose.yml` has only one Postgres DB (`kapida_dev`), no test DB. Recorded as the first task for next session, so it isn't assumed to already exist.
+- User explicitly deferred implementation to the next session ("yarın başlayalım"): today was preparation/planning only, no test code or dependencies were added.
+- Resume Development chain updated: Backend Integration Test Suite is now the "we are here" marker, status Planned.
 
 Future sessions will append new entries here.
