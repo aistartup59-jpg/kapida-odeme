@@ -174,9 +174,9 @@ Only findings that require an architecture change belong here.
 ```
 Backend Audit Complete   ✅ reached 2026-07-18
         ↓
-Backend Freeze            ← we are here (entered 2026-07-19)
+Backend Freeze            ✅ declared 2026-07-19
         ↓
-Integration Tests
+Integration Tests         ← we are here
         ↓
 Flutter Development
         ↓
@@ -186,6 +186,29 @@ New Features
 ```
 
 Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) is still an unmodified Next.js skeleton — both resume only after the backend audit above is complete and frozen.
+
+---
+
+# Backend Freeze Rules
+
+**Declared:** 2026-07-19. **In effect until explicitly lifted by the user.**
+
+Backend Freeze means the backend is feature-complete: audited, core bugs fixed, and now only being verified — not extended. Analogy: the house is built and inspected; now it's sealed and walls no longer get broken open, only tested room by room.
+
+**Not allowed while frozen:**
+- New features
+- New endpoints
+- Refactors
+- Architecture changes
+
+**Allowed while frozen:**
+- Integration tests
+- Performance checks
+- Fixing critical bugs found during testing
+
+Purpose: Flutter and Website development need a stable, unmoving API contract to build against. Every backend change during this phase risks reopening endpoints/DTOs that Flutter/Website are actively wiring up.
+
+Resume order once Integration Tests pass: Flutter Development → Website Development → Beta release → New Features (Refund, additional payment providers, reporting, etc.).
 
 ---
 
@@ -201,11 +224,11 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Last completed task:** Pre-freeze QR verification, requested by the user before starting Backend Freeze. Confirmed the QR design already matches ADR-003 (single real Bank QR per PaymentRequest via `provider.generateBankQR()`, provider-agnostic response shape with no bank-specific fields, never derived from a Payment Link). Found the provider's `qrData`/`expiresAt` were fetched in `payment-engine.service.ts` and discarded — never reaching the API response, so even a completed ParamPOS implementation would have no way to surface the QR to the merchant/employee app. User chose to return it ephemerally on the create response rather than persist it (mirrors ADR-002's derive-don't-store treatment of `remainingAmount`). Threaded `qrData`/`qrExpiresAt` through `PaymentExecutionResult` → new `CreatePaymentEngineResult` → `PaymentRequestResponseDto`; `createPaymentRequest` now returns the DTO (via `toResponse()`) instead of the raw entity, consistent with the other endpoints. Build passed, user approved, committed and pushed as `92dc4bb`.
 
-**Current task:** Entering Backend Freeze per user instruction.
+**Current task:** Backend Freeze declared (see Backend Freeze Rules above). No further backend features/endpoints/refactors/architecture changes until the user lifts the freeze.
 
-**Next task:** Backend Freeze scope is not yet defined in any project doc — needs explicit user clarification on what it concretely means here (e.g. tag a release point, restrict backend changes to critical fixes only, a freeze checklist/doc) before proceeding. Then Integration Tests, then Flutter/Website development.
+**Next task:** Integration Tests. Scope/framework/test plan not yet defined — needs explicit user direction before starting (what to cover, what tooling, where tests live) per the Decision Rule.
 
-**Blocked by:** Awaiting user clarification on what Backend Freeze concretely entails for this project.
+**Blocked by:** Awaiting user direction on the Integration Tests plan.
 
 **Important reminders:**
 - Only `PaymentStateMachineService.applyTransition()` may change `PaymentRequest.status` (ADR-011).
@@ -361,6 +384,8 @@ Record only important audit-board milestones.
 - Implemented: `PaymentExecutionResult` and a new `CreatePaymentEngineResult` (extends `PaymentEngineResult<PaymentRequest>`) carry `qrData`/`qrExpiresAt` from `executeWithProvider`'s QR branch through `createPayment`; `PaymentRequestResponseDto` gained optional `qrData`/`qrExpiresAt`; `PaymentService.createPaymentRequest` now returns the DTO via `toResponse()` (previously returned the raw entity, inconsistent with every other endpoint) and attaches the QR fields when present.
 - ParamPOS's `generateBankQR` remains a `NotImplementedException` stub (sandbox API contract still pending, per Phase 3 audit note) — this fix wires the plumbing so the QR reaches the API the moment that implementation lands.
 - Build passed (`tsc --noEmit` and `npm run build`), user approved, committed and pushed as `92dc4bb`.
-- **Entering Backend Freeze** per user instruction. Scope of "Backend Freeze" is undefined in project docs — flagged as needing explicit clarification before any freeze-specific action is taken.
+- Asked the user to define "Backend Freeze" concretely, since it was undefined in any project doc. User's definition: the backend is feature-complete (audited, core bugs fixed) and now enters verification-only mode — no new features, endpoints, refactors, or architecture changes; only integration tests, performance checks, and critical bug fixes are allowed, so Flutter/Website can build against a stable API contract.
+- **Declared Backend Freeze**, recorded as a new "Backend Freeze Rules" section in this file. Resume Development chain updated: Backend Freeze ✅, Current position moved to Integration Tests.
+- Next session (or continuation of this one) needs the user's direction on the Integration Tests plan (scope, tooling, location) before starting, per the Decision Rule — not yet defined.
 
 Future sessions will append new entries here.
