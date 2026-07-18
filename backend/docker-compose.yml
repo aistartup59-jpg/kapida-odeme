@@ -11,6 +11,17 @@ services:
     ports:
       - "5432:5432"
 
+  # Dedicated to the Backend Integration Test Suite (backend/test/integration).
+  # Deliberately has no volume: each test run should be able to start from a clean DB.
+  postgres-test:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: kapida
+      POSTGRES_PASSWORD: kapida
+      POSTGRES_DB: kapida_test
+    ports:
+      - "5433:5432"
+
   backend:
     build: .
     depends_on:

@@ -214,7 +214,7 @@ Resume order once Integration Tests pass: Flutter Development → Website Develo
 
 # Backend Integration Test Suite
 
-**Status:** Planned — scope agreed with the user on 2026-07-19. Implementation starts next session ("yarın başlayalım").
+**Status:** Infra set up (2026-07-19), no test files written yet. Phase 1 (Authentication) starts next session.
 
 ## Stack
 
@@ -222,14 +222,18 @@ No new frameworks — using what a NestJS project brings by default:
 
 - **Jest** — test runner
 - **Supertest** — HTTP endpoint (integration) testing
-- **Test database** — a dedicated Postgres DB, isolated from dev data
+- **Test database** — a dedicated Postgres DB (`postgres-test` docker-compose service, `kapida_test` DB, port 5433), isolated from dev data
 
-**Readiness check (2026-07-19):** none of this is actually installed in this repo yet — verified before writing this plan, don't assume it's already there next session:
-- `backend/package.json` has **zero** test tooling: no `jest`, `supertest`, `@nestjs/testing`, `ts-jest`/`@types/jest`, and no `test` script at all.
-- No `backend/test/` folder exists. No `*.spec.ts` file exists anywhere in the repo.
-- `docker-compose.yml` defines a single Postgres service/DB (`kapida_dev`) — no separate test database yet.
+**Infra set up (2026-07-19):**
+- `backend/package.json`: added `jest`, `ts-jest`, `@types/jest`, `supertest`, `@types/supertest`, `@nestjs/testing` as devDependencies, plus a `test` script (`jest --config ./test/jest-integration.json`). `npm install` and `npm run build` both verified clean.
+- `backend/test/jest-integration.json`: Jest config, `testRegex` matches `test/integration/**/*.spec.ts`, ts-jest transform points at `backend/tsconfig.json`.
+- `backend/test/setup-env.ts`: loads `backend/.env.test` (gitignored, developer-local) via `dotenv` before tests run.
+- `backend/.env.test.example`: committed template for `.env.test` — test DB connection (port 5433 / `kapida_test`) plus placeholder `JWT_SECRET`/`CREDENTIAL_ENCRYPTION_SECRET` (both required, no default, same pattern as dev).
+- `backend/docker-compose.yml`: added a `postgres-test` service — separate container, separate port (5433), **no volume** (each test run can start clean; state cleanup between tests is a Phase 1 concern, not solved yet).
+- Folder scaffold created exactly per the agreed structure, empty dirs held with `.gitkeep`: `test/integration/{auth,merchant,payment,transaction,provider,lifecycle,security,race}/`, `test/{helpers,fixtures,factories,utils}/`.
+- Verified `npm test` (no spec files yet) correctly reports "No tests found" against the right `testRegex` — config wiring confirmed working, exit code 1 is expected until Phase 1 specs exist.
 
-**First task next session, before writing any test:** install the dev dependencies above, add a `test` script to `package.json`, and stand up an isolated test DB (second `docker-compose` service, e.g. `kapida_test`, or an env-driven override — decide with the user, don't guess).
+**⚠ Blocker found, not resolved today:** Docker is not installed on this machine (`docker --version` fails in both Git Bash and PowerShell) and nothing is listening on port 5432 locally. The `postgres-test` service was added to `docker-compose.yml` but **could not be started or verified** in this environment. Before Phase 1 tests can actually run against a real DB, either install Docker Desktop (and confirm the existing dev Postgres setup even works today) or set up Postgres another way (native install, WSL2, remote dev DB). Flagged for the user to resolve before/at the start of next session — not something to guess around.
 
 ## Scope — by phase
 
@@ -303,11 +307,11 @@ When this phase is done, every critical backend workflow is verified by automate
 
 **Last completed task:** Pre-freeze QR verification, requested by the user before starting Backend Freeze. Confirmed the QR design already matches ADR-003 (single real Bank QR per PaymentRequest via `provider.generateBankQR()`, provider-agnostic response shape with no bank-specific fields, never derived from a Payment Link). Found the provider's `qrData`/`expiresAt` were fetched in `payment-engine.service.ts` and discarded — never reaching the API response, so even a completed ParamPOS implementation would have no way to surface the QR to the merchant/employee app. User chose to return it ephemerally on the create response rather than persist it (mirrors ADR-002's derive-don't-store treatment of `remainingAmount`). Threaded `qrData`/`qrExpiresAt` through `PaymentExecutionResult` → new `CreatePaymentEngineResult` → `PaymentRequestResponseDto`; `createPaymentRequest` now returns the DTO (via `toResponse()`) instead of the raw entity, consistent with the other endpoints. Build passed, user approved, committed and pushed as `92dc4bb`.
 
-**Current task:** Backend Freeze declared (see Backend Freeze Rules above). No further backend features/endpoints/refactors/architecture changes until the user lifts the freeze. Backend Integration Test Suite scope agreed with the user and recorded above (see that section) — planning only, no code written yet.
+**Current task:** Backend Freeze declared (see Backend Freeze Rules above). No further backend features/endpoints/refactors/architecture changes until the user lifts the freeze. Backend Integration Test Suite infra is set up (Jest/Supertest/@nestjs/testing installed, jest config, `postgres-test` docker-compose service, `.env.test.example`, folder scaffold) — see that section above for the full list. No test files written yet.
 
-**Next task:** Start the Backend Integration Test Suite next session, per the user's explicit "yarın başlayalım." First step: install Jest/Supertest/@nestjs/testing dev deps, add a `test` script, and set up an isolated test DB — then begin Phase 1 (Authentication) tests per the folder structure above.
+**Next task:** Next session, when the user says to resume: first re-ask how to resolve the Docker blocker below (don't assume an answer carried over) so `postgres-test` can actually run — then go straight into Phase 1 (Authentication) integration tests, no further check-ins needed for that transition.
 
-**Blocked by:** Nothing — plan is agreed, waiting for the next session to begin implementation.
+**Blocked by:** Docker is not installed on this machine — `postgres-test` (added to `docker-compose.yml` on 2026-07-19) has not been started or verified. Needs to be resolved (install Docker Desktop, or another way to get a reachable Postgres) before any test that touches the DB can run. Per explicit user instruction (2026-07-19), this must be asked again at the start of next session rather than assumed.
 
 **Important reminders:**
 - Only `PaymentStateMachineService.applyTransition()` may change `PaymentRequest.status` (ADR-011).
@@ -469,5 +473,10 @@ Record only important audit-board milestones.
 - Verified current readiness before committing to the plan: `backend/package.json` has no test tooling at all (no Jest, Supertest, `@nestjs/testing`, `test` script) and no `test/` folder or `*.spec.ts` file exists yet; `docker-compose.yml` has only one Postgres DB (`kapida_dev`), no test DB. Recorded as the first task for next session, so it isn't assumed to already exist.
 - User explicitly deferred implementation to the next session ("yarın başlayalım"): today was preparation/planning only, no test code or dependencies were added.
 - Resume Development chain updated: Backend Integration Test Suite is now the "we are here" marker, status Planned.
+- User asked to set the infra up immediately instead of waiting: "şuan kuralım yarın direk testlere geçeriz." Installed `jest`, `ts-jest`, `@types/jest`, `supertest` (bumped to `^7.1.3` after npm flagged `^6.3.3` as deprecated), `@types/supertest`, `@nestjs/testing` as devDependencies; added a `test` script; added `backend/test/jest-integration.json` + `backend/test/setup-env.ts`; added `backend/.env.test.example` (and `!.env.test.example` to the root `.gitignore`, mirroring the existing `.env.example` exception); added a `postgres-test` service to `docker-compose.yml` (separate container/port 5433/`kapida_test` DB, no volume — deliberately ephemeral); scaffolded the full `test/integration/{...}` and `test/{helpers,fixtures,factories,utils}/` folder tree with `.gitkeep` placeholders.
+- Verified: `npm install` clean, `npm run build` clean, `npm test` correctly reports "No tests found" against the right `testRegex` (config confirmed working with zero spec files, as expected today).
+- `npm audit` reports 25 pre-existing vulnerabilities, all rooted in `@nestjs/cli`/`@nestjs/schematics`/`@nestjs/config`'s own transitive deps (`@angular-devkit/*`, `lodash`, `multer`, `glob`, `picomatch`) — none introduced by the new test tooling, none fixable without breaking major-version bumps. Left untouched: out of scope for test infra setup and forbidden during Backend Freeze (no dependency-upgrade "refactors").
+- **Found a real blocker while trying to verify `postgres-test`:** Docker is not installed on this machine (`docker --version` fails in both Git Bash and PowerShell), and nothing listens on port 5432 locally either — meaning even the existing dev Postgres setup has not been confirmed runnable in this environment. The `postgres-test` service exists in `docker-compose.yml` but was never actually started or tested. Recorded as an explicit blocker for next session rather than assumed away.
+- User's closing instruction for next session: when told to resume, re-ask how to resolve the Docker blocker (don't carry over an assumed answer), get a decision, and then go directly into writing Phase 1 (Authentication) tests — no other check-ins needed for that step. **Session ending for the day.**
 
 Future sessions will append new entries here.
