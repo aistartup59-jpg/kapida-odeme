@@ -45,7 +45,7 @@ This workflow is permanent.
 ---
 
 **Project:** Kapıda Ödeme / PayALS
-**Last Updated:** 2026-07-18
+**Last Updated:** 2026-07-19
 **Current Phase:** —
 **Current Module:** —
 **Current File:** Backend Audit Complete
@@ -60,7 +60,7 @@ Current File becomes:
 
 Backend Audit Complete
 
-**Current Activity:** **Backend Audit Complete — 66/66 auditable files fully reviewed, all 7 phases done.** Post-completion cleanup (`d7e2771`, 2026-07-18): removed the 3 dead-code notes flagged during the audit — deleted the unused `CredentialMaskingService`, dropped `Merchant.isVerified`, `MerchantSession.deviceName`/`ipAddress`/`userAgent`, and `MerchantPaymentProvider.priority` (new migration `1784330000000-RemoveUnusedColumns.ts`), and fixed `MerchantPaymentProvider.isActive`'s DB default to `false` to match actual behavior. `PROJECT_STATUS.md` also corrected to stop listing the credential vault as production-ready. Per the Resume Development chain, next is Backend Freeze, then Integration Tests, then Flutter/Website development — picking up there in the next session.
+**Current Activity:** **Backend Audit Complete — 66/66 auditable files fully reviewed, all 7 phases done.** Post-completion cleanup (`d7e2771`, 2026-07-18): removed the 3 dead-code notes flagged during the audit — deleted the unused `CredentialMaskingService`, dropped `Merchant.isVerified`, `MerchantSession.deviceName`/`ipAddress`/`userAgent`, and `MerchantPaymentProvider.priority` (new migration `1784330000000-RemoveUnusedColumns.ts`), and fixed `MerchantPaymentProvider.isActive`'s DB default to `false` to match actual behavior. `PROJECT_STATUS.md` also corrected to stop listing the credential vault as production-ready. Pre-freeze QR verification (`92dc4bb`, 2026-07-19): confirmed the QR design already matches ADR-003 (one real Bank QR per PaymentRequest, provider-agnostic, never derived from a Payment Link), but found `generateBankQR`'s `qrData`/`expiresAt` were fetched from the provider and silently discarded — never reaching the API response. Fixed: threaded through `PaymentExecutionResult` → new `CreatePaymentEngineResult` → `PaymentRequestResponseDto`, returned only on `POST /payments` and never persisted (user chose ephemeral-response over a DB column). Now entering **Backend Freeze**.
 
 ---
 
@@ -144,7 +144,8 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 | 18 | | Register global ValidationPipe; add missing validators to 13 DTOs | `39ada07` | Auth / Payment / Merchant | Bug Fix | Fixed |
 | 19 | | Round remainingAmount to avoid float drift | `4c764a9` | Transaction | Bug Fix | Fixed |
 | 20 | | Require DATABASE_PASSWORD at startup, no default | `59bf4cd` | Database | Hardening | Fixed |
-| 21 | newest | Remove dead columns and unused CredentialMaskingService | `d7e2771` | Auth / Merchant / Payment Provider | Cleanup | Fixed |
+| 21 | | Remove dead columns and unused CredentialMaskingService | `d7e2771` | Auth / Merchant / Payment Provider | Cleanup | Fixed |
+| 22 | newest | Return generated bank QR payload in the create response | `92dc4bb` | Payment / Payment Provider | Bug Fix | Fixed |
 
 ---
 
@@ -173,7 +174,7 @@ Only findings that require an architecture change belong here.
 ```
 Backend Audit Complete   ✅ reached 2026-07-18
         ↓
-Backend Freeze            ← we are here
+Backend Freeze            ← we are here (entered 2026-07-19)
         ↓
 Integration Tests
         ↓
@@ -192,19 +193,19 @@ Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) 
 
 **Current Branch:** main
 
-**Last Commit:** `d7e2771`
+**Last Commit:** `92dc4bb`
 
 **Current Audit Phase:** — (complete)
 
 **Current File:** Backend Audit Complete
 
-**Last completed task:** Post-completion cleanup of the 3 dead-code notes flagged during the audit: deleted unused `CredentialMaskingService` (no callers anywhere); dropped `Merchant.isVerified`, `MerchantSession.deviceName`/`ipAddress`/`userAgent`, and `MerchantPaymentProvider.priority` (none ever written or read by any code path — verified via a fresh codebase-wide grep before touching anything); fixed `MerchantPaymentProvider.isActive`'s DB default from `true` to `false` to match `register()`'s actual always-explicit behavior. Added migration `1784330000000-RemoveUnusedColumns.ts`. Build passed, user approved, committed and pushed as `d7e2771`. Also corrected `PROJECT_STATUS.md`, which listed the credential vault as production-ready despite its in-memory-only persistence gap (see Deferred Findings).
+**Last completed task:** Pre-freeze QR verification, requested by the user before starting Backend Freeze. Confirmed the QR design already matches ADR-003 (single real Bank QR per PaymentRequest via `provider.generateBankQR()`, provider-agnostic response shape with no bank-specific fields, never derived from a Payment Link). Found the provider's `qrData`/`expiresAt` were fetched in `payment-engine.service.ts` and discarded — never reaching the API response, so even a completed ParamPOS implementation would have no way to surface the QR to the merchant/employee app. User chose to return it ephemerally on the create response rather than persist it (mirrors ADR-002's derive-don't-store treatment of `remainingAmount`). Threaded `qrData`/`qrExpiresAt` through `PaymentExecutionResult` → new `CreatePaymentEngineResult` → `PaymentRequestResponseDto`; `createPaymentRequest` now returns the DTO (via `toResponse()`) instead of the raw entity, consistent with the other endpoints. Build passed, user approved, committed and pushed as `92dc4bb`.
 
-**Current task:** Session ending for the day per user instruction. Backend Audit remains complete (66/66).
+**Current task:** Entering Backend Freeze per user instruction.
 
-**Next task:** Per the Resume Development chain below: Backend Freeze, then Integration Tests, then Flutter/Website development — resume with this exact order next session.
+**Next task:** Backend Freeze scope is not yet defined in any project doc — needs explicit user clarification on what it concretely means here (e.g. tag a release point, restrict backend changes to critical fixes only, a freeze checklist/doc) before proceeding. Then Integration Tests, then Flutter/Website development.
 
-**Blocked by:** Explicit user direction on when/how to start Backend Freeze. No further code changes until then.
+**Blocked by:** Awaiting user clarification on what Backend Freeze concretely entails for this project.
 
 **Important reminders:**
 - Only `PaymentStateMachineService.applyTransition()` may change `PaymentRequest.status` (ADR-011).
@@ -351,5 +352,15 @@ Record only important audit-board milestones.
 - User asked to clean up the 3 dead-code notes and correct `PROJECT_STATUS.md` before ending the session. Deleted `CredentialMaskingService` (confirmed zero references anywhere via grep). Dropped `Merchant.isVerified`, `MerchantSession.deviceName`/`ipAddress`/`userAgent`, `MerchantPaymentProvider.priority` from their entities, and fixed `MerchantPaymentProvider.isActive`'s DB default from `true` to `false` (matching `register()`'s actual behavior) — all confirmed unreferenced anywhere else in the codebase before removal. Added migration `1784330000000-RemoveUnusedColumns.ts`. Build passed, user approved, committed and pushed as `d7e2771`.
 - Corrected `PROJECT_STATUS.md`: removed "Credential vault/encryption" from the production-ready list, since `credential-vault.service.ts` is in-memory only (see Deferred Findings above).
 - **Session ending for the day.** Next session resumes per the Resume Development chain: Backend Freeze → Integration Tests → Flutter/Website development, in that order.
+
+**2026-07-19**
+- User asked to verify, before starting Backend Freeze, that the QR payment method matches real-world Bank QR behavior: a POS terminal produces one QR, and the customer pays from it with any bank's own banking app.
+- Confirmed the design already matches ADR-003: `PaymentMethod.QR` triggers exactly one `provider.generateBankQR()` call per `PaymentRequest` (`payment-engine.service.ts`), and `GenerateBankQrResponse` carries only `qrData`/`expiresAt` — no bank-specific fields, no dependency on Payment Link.
+- Found a real gap: the `qrData` returned by the provider was discarded immediately after the call, never persisted or returned to the API caller — so the generated QR could never actually reach the merchant/employee app, independent of whether the provider itself was implemented.
+- Asked the user how `qrData` should be carried: ephemeral response field vs. a persisted DB column. User chose ephemeral (response-only, mirrors ADR-002's derive-don't-store pattern) since bank QR payloads are time-limited provider output, not PaymentRequest state.
+- Implemented: `PaymentExecutionResult` and a new `CreatePaymentEngineResult` (extends `PaymentEngineResult<PaymentRequest>`) carry `qrData`/`qrExpiresAt` from `executeWithProvider`'s QR branch through `createPayment`; `PaymentRequestResponseDto` gained optional `qrData`/`qrExpiresAt`; `PaymentService.createPaymentRequest` now returns the DTO via `toResponse()` (previously returned the raw entity, inconsistent with every other endpoint) and attaches the QR fields when present.
+- ParamPOS's `generateBankQR` remains a `NotImplementedException` stub (sandbox API contract still pending, per Phase 3 audit note) — this fix wires the plumbing so the QR reaches the API the moment that implementation lands.
+- Build passed (`tsc --noEmit` and `npm run build`), user approved, committed and pushed as `92dc4bb`.
+- **Entering Backend Freeze** per user instruction. Scope of "Backend Freeze" is undefined in project docs — flagged as needing explicit clarification before any freeze-specific action is taken.
 
 Future sessions will append new entries here.
