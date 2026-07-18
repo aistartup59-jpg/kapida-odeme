@@ -15,6 +15,7 @@ import { PaymentExecutionError, PaymentExecutionResult } from './models/payment-
 import {
   CancelPaymentEngineRequest,
   CreatePaymentEngineRequest,
+  CreatePaymentEngineResult,
   CreatePaymentLinkEngineRequest,
   GenerateQrEngineRequest,
   GetPaymentStatusEngineRequest,
@@ -35,7 +36,7 @@ export class PaymentEngineService implements PaymentEngine {
     private readonly transactionEngine: TransactionEngineService,
   ) {}
 
-  async createPayment(request: CreatePaymentEngineRequest): Promise<PaymentEngineResult<PaymentRequest>> {
+  async createPayment(request: CreatePaymentEngineRequest): Promise<CreatePaymentEngineResult> {
     const initialState = PaymentLifecycleState.PENDING;
 
     this.validateInitialLifecycle(initialState);
@@ -85,7 +86,7 @@ export class PaymentEngineService implements PaymentEngine {
       return { success: false, error: executionResult.error };
     }
 
-    return { success: true, data: saved };
+    return { success: true, data: saved, qrData: executionResult.qrData, qrExpiresAt: executionResult.qrExpiresAt };
   }
 
   // CASH has no provider involvement, and NFC completion is reported later through the
@@ -104,14 +105,15 @@ export class PaymentEngineService implements PaymentEngine {
   ): Promise<PaymentExecutionResult> {
     try {
       switch (paymentMethod) {
-        case PaymentMethod.QR:
-          await provider.generateBankQR({
+        case PaymentMethod.QR: {
+          const qrResponse = await provider.generateBankQR({
             reference: context.paymentRequestId,
             amount: context.amount,
             currency: context.currency,
             credentials: { reference: context.credentialsReference },
           });
-          return { success: true };
+          return { success: true, qrData: qrResponse.qrData, qrExpiresAt: qrResponse.expiresAt };
+        }
         case PaymentMethod.PAYMENT_LINK:
           await provider.createPaymentLink({
             reference: context.paymentRequestId,

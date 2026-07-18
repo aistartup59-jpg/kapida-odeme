@@ -21,4 +21,10 @@ export interface PaymentRequestResponseDto {
   createdAt: Date;
   updatedAt: Date;
   transactions: TransactionResponseDto[];
+  // Present only on the create response for PaymentMethod.QR. A real Bank QR (ADR-003) is
+  // a time-limited provider payload, not a stored PaymentRequest attribute — it is never
+  // persisted or returned again on subsequent reads (mirrors ADR-002's "always derive,
+  // never store" treatment of remainingAmount).
+  qrData?: string;
+  qrExpiresAt?: Date;
 }

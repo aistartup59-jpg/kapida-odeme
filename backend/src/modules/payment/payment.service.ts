@@ -32,7 +32,10 @@ export class PaymentService {
     private readonly paymentEngine: PaymentEngineService,
   ) {}
 
-  async createPaymentRequest(payload: CreatePaymentRequestDto, user?: { sub?: string; type?: string }): Promise<PaymentRequest> {
+  async createPaymentRequest(
+    payload: CreatePaymentRequestDto,
+    user?: { sub?: string; type?: string },
+  ): Promise<PaymentRequestResponseDto> {
     if (!payload?.totalAmount || payload.totalAmount <= 0) {
       throw new BadRequestException('totalAmount must be greater than 0.');
     }
@@ -58,7 +61,14 @@ export class PaymentService {
       throw new BadRequestException(result.error?.message ?? 'Unable to create payment request.');
     }
 
-    return result.data;
+    const response = await this.toResponse(result.data);
+
+    if (result.qrData) {
+      response.qrData = result.qrData;
+      response.qrExpiresAt = result.qrExpiresAt;
+    }
+
+    return response;
   }
 
   // Reports a transaction (e.g. CASH or NFC completion) against an existing PaymentRequest.

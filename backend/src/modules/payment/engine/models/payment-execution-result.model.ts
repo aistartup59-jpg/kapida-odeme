@@ -8,5 +8,7 @@ export interface PaymentExecutionResult {
   success: boolean;
   providerReference?: string;
   status?: string;
+  qrData?: string;
+  qrExpiresAt?: Date;
   error?: PaymentExecutionError;
 }

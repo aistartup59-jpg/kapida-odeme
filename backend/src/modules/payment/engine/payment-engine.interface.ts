@@ -49,8 +49,17 @@ export interface RecordTransactionEngineRequest extends PaymentEngineRequest {
   providerReference?: string;
 }
 
+// A real Bank QR (ADR-003) is a provider-issued, time-limited payload, not a stored
+// attribute of the PaymentRequest — it rides alongside the created entity in the
+// response but is never persisted, matching the "always derive, never store" spirit
+// applied to remainingAmount under ADR-002.
+export interface CreatePaymentEngineResult extends PaymentEngineResult<PaymentRequest> {
+  qrData?: string;
+  qrExpiresAt?: Date;
+}
+
 export interface PaymentEngine {
-  createPayment(request: CreatePaymentEngineRequest): Promise<PaymentEngineResult<PaymentRequest>>;
+  createPayment(request: CreatePaymentEngineRequest): Promise<CreatePaymentEngineResult>;
   generateQr(request: GenerateQrEngineRequest): Promise<PaymentEngineResult>;
   createPaymentLink(request: CreatePaymentLinkEngineRequest): Promise<PaymentEngineResult>;
   processNfc(request: ProcessNfcEngineRequest): Promise<PaymentEngineResult>;
