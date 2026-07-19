@@ -27,4 +27,9 @@ export interface PaymentRequestResponseDto {
   // never store" treatment of remainingAmount).
   qrData?: string;
   qrExpiresAt?: Date;
+  // Present only on the create response for PaymentMethod.PAYMENT_LINK, same rationale as
+  // qrData above — SMS/WhatsApp/Copy Link (DeliveryChannel) deliver this URL to the
+  // customer, so it must reach the caller, but it is never persisted or re-derivable later.
+  linkUrl?: string;
+  linkExpiresAt?: Date;
 }

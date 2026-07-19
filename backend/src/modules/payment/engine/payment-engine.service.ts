@@ -86,7 +86,14 @@ export class PaymentEngineService implements PaymentEngine {
       return { success: false, error: executionResult.error };
     }
 
-    return { success: true, data: saved, qrData: executionResult.qrData, qrExpiresAt: executionResult.qrExpiresAt };
+    return {
+      success: true,
+      data: saved,
+      qrData: executionResult.qrData,
+      qrExpiresAt: executionResult.qrExpiresAt,
+      linkUrl: executionResult.linkUrl,
+      linkExpiresAt: executionResult.linkExpiresAt,
+    };
   }
 
   // CASH has no provider involvement, and NFC completion is reported later through the
@@ -114,14 +121,15 @@ export class PaymentEngineService implements PaymentEngine {
           });
           return { success: true, qrData: qrResponse.qrData, qrExpiresAt: qrResponse.expiresAt };
         }
-        case PaymentMethod.PAYMENT_LINK:
-          await provider.createPaymentLink({
+        case PaymentMethod.PAYMENT_LINK: {
+          const linkResponse = await provider.createPaymentLink({
             reference: context.paymentRequestId,
             amount: context.amount,
             currency: context.currency,
             credentials: { reference: context.credentialsReference },
           });
-          return { success: true };
+          return { success: true, linkUrl: linkResponse.url, linkExpiresAt: linkResponse.expiresAt };
+        }
         default:
           return { success: true };
       }

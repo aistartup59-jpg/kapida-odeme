@@ -10,5 +10,7 @@ export interface PaymentExecutionResult {
   status?: string;
   qrData?: string;
   qrExpiresAt?: Date;
+  linkUrl?: string;
+  linkExpiresAt?: Date;
   error?: PaymentExecutionError;
 }

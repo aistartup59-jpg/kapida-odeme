@@ -68,6 +68,11 @@ export class PaymentService {
       response.qrExpiresAt = result.qrExpiresAt;
     }
 
+    if (result.linkUrl) {
+      response.linkUrl = result.linkUrl;
+      response.linkExpiresAt = result.linkExpiresAt;
+    }
+
     return response;
   }
 
