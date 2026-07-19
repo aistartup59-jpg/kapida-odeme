@@ -215,7 +215,7 @@ Resume order once Integration Tests pass: Flutter Development → Website Develo
 
 # Backend Integration Test Suite
 
-**Status:** Phase 1 (Authentication) and Phase 2 (Merchant Provider) complete — 12 spec files, 61 tests, all passing against `postgres-test`. Phase 3 (Payment Creation) next.
+**Status:** Phase 1 (Authentication), Phase 2 (Merchant Provider), and Phase 3 (Payment Creation) complete — 16 spec files, 86 tests, all passing against `postgres-test`. Phase 4 (Payment Lifecycle) next.
 
 ## Stack
 
@@ -308,9 +308,9 @@ When this phase is done, every critical backend workflow is verified by automate
 
 **Last completed task:** Pre-freeze QR verification, requested by the user before starting Backend Freeze. Confirmed the QR design already matches ADR-003 (single real Bank QR per PaymentRequest via `provider.generateBankQR()`, provider-agnostic response shape with no bank-specific fields, never derived from a Payment Link). Found the provider's `qrData`/`expiresAt` were fetched in `payment-engine.service.ts` and discarded — never reaching the API response, so even a completed ParamPOS implementation would have no way to surface the QR to the merchant/employee app. User chose to return it ephemerally on the create response rather than persist it (mirrors ADR-002's derive-don't-store treatment of `remainingAmount`). Threaded `qrData`/`qrExpiresAt` through `PaymentExecutionResult` → new `CreatePaymentEngineResult` → `PaymentRequestResponseDto`; `createPaymentRequest` now returns the DTO (via `toResponse()`) instead of the raw entity, consistent with the other endpoints. Build passed, user approved, committed and pushed as `92dc4bb`.
 
-**Current task:** Backend Freeze in effect (see Backend Freeze Rules above). Backend Integration Test Suite: Phase 1 (Authentication, 8 spec files, 42 tests) and Phase 2 (Merchant Provider, 4 spec files, 19 tests) both complete and passing — 12 suites / 61 tests total. Phase 1 turned up one critical bug (cross-tenant employee creation, fixed — see Completed Audit Fixes #23). Phase 2 found no bugs: `findOwnedProvider`'s merchant-scoped lookup already correctly rejects cross-tenant access on update/activate (verified by dedicated regression tests).
+**Current task:** Backend Freeze in effect (see Backend Freeze Rules above). Backend Integration Test Suite: Phase 1 (Authentication, 8 files, 42 tests), Phase 2 (Merchant Provider, 4 files, 19 tests), and Phase 3 (Payment Creation, 4 files, 25 tests) all complete and passing — 16 suites / 86 tests total. Phase 1 turned up one critical bug (cross-tenant employee creation, fixed — see Completed Audit Fixes #23). Phases 2 and 3 found no bugs.
 
-**Next task:** Phase 3 (Payment Creation) integration tests: Payment Create, Validation, JWT ownership, Employee ownership — under `backend/test/integration/payment/`.
+**Next task:** Phase 4 (Payment Lifecycle) integration tests: Pending, Partial Paid, Paid, Failed, Cancelled — every state machine transition — under `backend/test/integration/lifecycle/`.
 
 **Blocked by:** Nothing currently. Docker/`postgres-test` confirmed working (2026-07-20).
 
@@ -500,6 +500,12 @@ Record only important audit-board milestones.
 - First run: 60/61 passing — one self-inflicted test bug, not a product bug. The provider-switch resolver test used `IYZICO` for the second provider, but only `PARAM_POS` is registered in `ProviderRegistry` (per the original Phase 3 audit note); `resolveActiveProvider()` correctly threw `NotFoundException: Payment provider not registered: IYZICO`. Fixed the test to use two `PARAM_POS` rows distinguished by `credentialsReference` instead, which still exercises the "switch which row is active" path without depending on an unimplemented adapter.
 - **No product bugs found in Phase 2.** Unlike the Phase 1 `createEmployee` bug, every provider endpoint already scopes correctly: `findOwnedProvider()` (used by `update`/`activate`) filters by `{ id, merchantId }` together, so cross-tenant update/activate attempts correctly return `404` (verified by dedicated regression tests here) rather than leaking or mutating another merchant's provider config. `resolveMerchantId()` (the same pattern the Phase 1 fix adopted) is used consistently throughout this service.
 - Build passed, full suite green: **12 suites, 61 tests, all passing.**
-- Next: Phase 3 (Payment Creation) integration tests — Payment Create, Validation, JWT ownership, Employee ownership.
+- User approved; committed as two commits (tests, docs) and pushed: `13102f5` (tests), `497d0a8` (docs).
+- User: "phase 3 geçelim" — proceeded into Phase 3 (Payment Creation) per the established continuous-mode pattern.
+- Read `payment.controller.ts`/`.service.ts`, `payment-engine.service.ts`, `create-payment-request.dto.ts`, `payment-request.entity.ts`, `payment-request-response.dto.ts`, and the `PaymentMethod`/`Currency`/`DeliveryChannel`/`PaymentLifecycleState` enums. Confirmed: only `QR` and `PAYMENT_LINK` require an active provider at creation time (`requiresProviderExecution`); `CASH` and `NFC` create a `PENDING` `PaymentRequest` with no provider dispatch at all. `CreatePaymentRequestDto` has no `merchantId`/`employeeId` fields (ADR-005 already correctly enforced structurally, consistent with the Phase 1 fix's pattern).
+- Wrote Phase 3: 4 spec files — `payment-create` (CASH/NFC succeed with no provider; QR returns 404 with no active provider configured; QR returns a controlled 400 when the active provider is `PARAM_POS` — its `generateBankQR` is still an honest `NotImplementedException` stub per the original Phase 3 audit note, documented here as expected behavior, not a bug; currency/deliveryChannel defaults and overrides), `validation` (unauthenticated, missing/invalid `totalAmount`, missing/invalid `paymentMethod`/`currency`/`deliveryChannel`, and confirms a client-supplied `merchantId`/`employeeId` is whitelist-rejected with `400`), `jwt-ownership` (created payment's `merchantId` always matches the JWT; cross-merchant read returns `401`; list is scoped per-merchant), `employee-ownership` (employee-created payment carries both `merchantId` and `employeeId` from the JWT; owner sees every employee's payments; an employee's list and single-read are restricted to their own payment requests only).
+- **No product bugs found in Phase 3.** All 25 new tests passed on the first run — ADR-005 (JWT-derived identity), the CASH/NFC-vs-QR/PAYMENT_LINK provider-dispatch split, and the merchant/employee read-scoping in `payment.service.ts` all behaved exactly as designed.
+- Build passed, full suite green: **16 suites, 86 tests, all passing.**
+- Next: Phase 4 (Payment Lifecycle) integration tests — Pending, Partial Paid, Paid, Failed, Cancelled, every state machine transition.
 
 Future sessions will append new entries here.
