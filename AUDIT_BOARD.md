@@ -149,7 +149,8 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 | 23 | | Derive employee-invite merchantId from JWT, not client body (cross-tenant fix) | `f1f3601` | Auth | Bug Fix | Fixed |
 | 24 | | Return the full PaymentRequestResponseDto from recordTransaction (was raw entity) | `4b851d5` | Payment / Transaction | Bug Fix | Fixed |
 | 25 | | Thread PAYMENT_LINK's linkUrl/linkExpiresAt into the create response (was discarded) | `5200bd1` | Payment / Payment Provider | Bug Fix | Fixed |
-| 26 | newest | Add ParseUUIDPipe to payment/provider id path params (malformed id caused 500) | `669d0ac` | Payment / Merchant | Bug Fix | Fixed |
+| 26 | | Add ParseUUIDPipe to payment/provider id path params (malformed id caused 500) | `669d0ac` | Payment / Merchant | Bug Fix | Fixed |
+| 27 | newest | Lock provider rows in a fixed order before activation to prevent deadlock | `1aa8927` | Merchant | Bug Fix | Fixed |
 
 ---
 
@@ -180,9 +181,9 @@ Backend Audit Complete   ✅ reached 2026-07-18
         ↓
 Backend Freeze            ✅ declared 2026-07-19
         ↓
-Backend Integration Test Suite   ← we are here (planned 2026-07-19, starts next session)
+Backend Integration Test Suite   ✅ all 9 phases complete 2026-07-20 (38 suites, 200 tests)
         ↓
-Flutter Development
+Flutter Development   ← we are here (not yet started)
         ↓
 Website Development
         ↓
@@ -218,7 +219,7 @@ Resume order once Integration Tests pass: Flutter Development → Website Develo
 
 # Backend Integration Test Suite
 
-**Status:** Phases 1–8 complete — 34 spec files, 192 tests, all passing against `postgres-test`. Phase 9 (Race Conditions, highest priority) next.
+**Status:** Phases 1–9 complete — 38 spec files, 200 tests, all passing against `postgres-test`. **This closes out the Backend Integration Test Suite — all 9 phases done.**
 
 ## Stack
 
@@ -311,9 +312,9 @@ When this phase is done, every critical backend workflow is verified by automate
 
 **Last completed task:** Pre-freeze QR verification, requested by the user before starting Backend Freeze. Confirmed the QR design already matches ADR-003 (single real Bank QR per PaymentRequest via `provider.generateBankQR()`, provider-agnostic response shape with no bank-specific fields, never derived from a Payment Link). Found the provider's `qrData`/`expiresAt` were fetched in `payment-engine.service.ts` and discarded — never reaching the API response, so even a completed ParamPOS implementation would have no way to surface the QR to the merchant/employee app. User chose to return it ephemerally on the create response rather than persist it (mirrors ADR-002's derive-don't-store treatment of `remainingAmount`). Threaded `qrData`/`qrExpiresAt` through `PaymentExecutionResult` → new `CreatePaymentEngineResult` → `PaymentRequestResponseDto`; `createPaymentRequest` now returns the DTO (via `toResponse()`) instead of the raw entity, consistent with the other endpoints. Build passed, user approved, committed and pushed as `92dc4bb`.
 
-**Current task:** Backend Freeze in effect (see Backend Freeze Rules above). Backend Integration Test Suite: Phases 1–8 all complete and passing — 34 suites / 192 tests total (Phase 1: 8/42, Phase 2: 5/24, Phase 3: 4/25, Phase 4: 5/34, Phase 5: 4/23, Phase 6: 4/19, Phase 7: 1/6, Phase 8: 3/19). Four bugs found and fixed during testing so far: Phase 1's cross-tenant employee creation (#23), Phase 4's `recordTransaction` response missing `remainingAmount`/`transactions` (#24), Phase 6's `PAYMENT_LINK` create response missing `linkUrl`/`linkExpiresAt` (#25), and Phase 7's malformed payment/provider id causing a raw `500` instead of `400` (#26). Phases 2, 3, 5, and 8 found no bugs.
+**Current task:** **Backend Integration Test Suite complete — all 9 phases done.** 38 suites / 200 tests total (Phase 1: 8/42, Phase 2: 5/24, Phase 3: 4/25, Phase 4: 5/34, Phase 5: 4/23, Phase 6: 4/19, Phase 7: 1/6, Phase 8: 3/19, Phase 9: 4/8). Five bugs found and fixed during testing: Phase 1's cross-tenant employee creation (#23), Phase 4's `recordTransaction` response missing `remainingAmount`/`transactions` (#24), Phase 6's `PAYMENT_LINK` create response missing `linkUrl`/`linkExpiresAt` (#25), Phase 7's malformed payment/provider id causing a raw `500` instead of `400` (#26), and Phase 9's genuine Postgres deadlock under 3+ concurrent provider activations (#27). Backend Freeze remains in effect (see Backend Freeze Rules above) — this milestone completes the Freeze's stated purpose (stable API contract for Flutter/Website to build against), not an invitation to resume feature work without the user explicitly lifting it.
 
-**Next task:** Phase 9 (Race Conditions, highest priority) integration tests: Concurrent Payment, Concurrent Cancel, Overpayment, Provider Activation Race, Idempotency, Floating Point / Decimal rounding, Transaction Atomicity — under `backend/test/integration/race/`. This is a regression suite for every concurrency bug fixed during the original backend audit (see Completed Audit Fixes #4, #5, #8, #9, #11, #14, #19).
+**Next task:** Per the Resume Development chain: Flutter Development is next, pending explicit user direction to start it. No backend work is currently queued.
 
 **Blocked by:** Nothing currently. Docker/`postgres-test` confirmed working (2026-07-20).
 
@@ -546,6 +547,14 @@ Record only important audit-board milestones.
 - Wrote Phase 8 proper under a new `test/integration/security/` folder (per the original scaffold): `unauthorized.spec.ts` (gap 2 — sweeps every previously-untested protected route with no token, all `401`), `wrong-actor-type.spec.ts` (gap 3 — an employee token against create/list/update/activate/delete on payment providers, all `401`), `token-integrity.spec.ts` (gap 4 — expired and wrong-secret-forged tokens rejected on both the payment and merchant-provider modules, not just auth; added a new case beyond what `authorization.spec.ts` covered: a correctly-signed token for a `sub` that doesn't correspond to any real merchant, exercising `resolveIdentity()`'s DB-lookup-failure path rather than just signature verification; a control case confirms a valid token still works on both modules).
 - **No product bugs found in Phase 8.** All 19 new tests (5 + 7 + 5 + control case, plus the 5 in `provider-delete.spec.ts`) passed on the first run — every guard, ownership check, and identity-type restriction held exactly as designed across every module tested, including the previously-completely-untested `DELETE` endpoint.
 - Build passed, full suite green: **34 suites, 192 tests, all passing.**
-- Next: Phase 9 (Race Conditions, highest priority) — a regression suite for every concurrency bug fixed during the original backend audit (concurrent payment/cancel races, overpayment, provider activation race, idempotency, floating-point rounding, transaction atomicity).
+- User approved; committed as two commits (tests, docs) and pushed: `dcf6644` (tests), `235e9aa` (docs).
+- User: "devam" — proceeded into Phase 9 (Race Conditions, highest priority), the final phase. Scoped it as a regression suite for the original audit's concurrency fixes (#4, #5, #8, #9, #11, #14, #19), noting Phase 5 already covers floating-point rounding sequentially so Phase 9 only needed the genuinely-concurrent angle, not a duplicate.
+- Wrote `test/integration/race/concurrent-overpayment.spec.ts` (regression for #9/#4 — two/three simultaneous `recordTransaction` calls that would together overpay: exactly the amount that fits succeeds, the rest are rejected, and a rejected attempt leaves zero orphan `Transaction` rows, proving the whole insert+transition is atomic), `concurrent-idempotency.spec.ts` (regression for #11 under true concurrency rather than Phase 5's sequential replay — two simultaneous submissions of the same `providerReference` still produce exactly one `Transaction` row), `concurrent-cancel.spec.ts` (two simultaneous cancels on the same request are idempotent; a concurrent cancel + `recordTransaction` always ends `CANCELLED` with `paidAmount` reflecting exactly whichever one the row lock let commit first — proved both `PENDING→CANCELLED` and `PARTIALLY_PAID→CANCELLED` are legal, so cancel never itself fails regardless of ordering), `provider-activation-race.spec.ts` (regression for #8 — two, then five, providers activated concurrently for one merchant, asserting exactly one ends active).
+- **Found a fifth bug, and Phase 9 is exactly why:** the 5-provider concurrent-activation test *passed* on its first run, but the console logged an unhandled `QueryFailedError: deadlock detected` (Postgres `40P01`) from one of the five concurrent requests — the test's only assertion was the final "exactly one active" invariant, which still held even though one request had actually failed with a raw `500`. Re-ran the test 6 times standalone: **deadlock reproduced in 6/6 runs** (one run had two). Root cause: `merchant-payment-provider.service.ts`'s `activate()` runs `deactivateAllForMerchant` (a bulk `UPDATE ... WHERE merchantId = X` touching every row) inside a transaction; with 3+ rows and 2+ concurrent activations, each transaction's bulk UPDATE can acquire per-row locks in a different order, producing a genuine circular wait. Not a data-corruption bug (Postgres safely aborts one side of a deadlock and rolls it back) but a real reliability gap — a client double-activating or a retry storm against a merchant with 3+ configured providers could get an ugly, unhandled `500`.
+- Presented the finding (with the reproducible 6/6 evidence) before touching anything, same as the four prior findings — flagged as more architectural than the previous one-line fixes, since it touches the locking strategy rather than input validation. User chose to fix immediately.
+- Fix: added `MerchantPaymentProviderRepository.lockAllForMerchant()` — locks every row for the merchant with `SELECT ... FOR UPDATE ORDER BY id ASC` before `deactivateAllForMerchant`'s bulk UPDATE runs, so every concurrent `activate()` call acquires locks in the same fixed order (the standard Postgres deadlock-avoidance technique for concurrent multi-row updates), making the circular wait structurally impossible. Also strengthened the 5-provider test to assert every individual response status is `201` (not just the final state), since that's what actually would have caught this — the final-state-only assertion had silently let the bug through undetected on the first pass.
+- Verified the fix: re-ran the 5-provider activation test standalone **8/8 times with zero deadlocks**, then the full suite once more clean.
+- Build passed, full suite green: **38 suites, 200 tests, all passing.**
+- **Backend Integration Test Suite complete — all 9 phases done.** Per the Resume Development chain, Flutter Development is next (pending explicit user direction to start it); Backend Freeze remains in effect until the user explicitly lifts it.
 
 Future sessions will append new entries here.
