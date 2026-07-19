@@ -145,7 +145,8 @@ Chronological, oldest → newest. All authored on `main`, co-authored by Claude 
 | 19 | | Round remainingAmount to avoid float drift | `4c764a9` | Transaction | Bug Fix | Fixed |
 | 20 | | Require DATABASE_PASSWORD at startup, no default | `59bf4cd` | Database | Hardening | Fixed |
 | 21 | | Remove dead columns and unused CredentialMaskingService | `d7e2771` | Auth / Merchant / Payment Provider | Cleanup | Fixed |
-| 22 | newest | Return generated bank QR payload in the create response | `92dc4bb` | Payment / Payment Provider | Bug Fix | Fixed |
+| 22 | | Return generated bank QR payload in the create response | `92dc4bb` | Payment / Payment Provider | Bug Fix | Fixed |
+| 23 | newest | Derive employee-invite merchantId from JWT, not client body (cross-tenant fix) | *(pending commit)* | Auth | Bug Fix | Fixed |
 
 ---
 
@@ -214,7 +215,7 @@ Resume order once Integration Tests pass: Flutter Development → Website Develo
 
 # Backend Integration Test Suite
 
-**Status:** Infra set up (2026-07-19), no test files written yet. Phase 1 (Authentication) starts next session.
+**Status:** Phase 1 (Authentication) complete — 8 spec files, 42 tests, all passing against `postgres-test`. Phase 2 (Merchant Provider) starts next session.
 
 ## Stack
 
@@ -233,7 +234,7 @@ No new frameworks — using what a NestJS project brings by default:
 - Folder scaffold created exactly per the agreed structure, empty dirs held with `.gitkeep`: `test/integration/{auth,merchant,payment,transaction,provider,lifecycle,security,race}/`, `test/{helpers,fixtures,factories,utils}/`.
 - Verified `npm test` (no spec files yet) correctly reports "No tests found" against the right `testRegex` — config wiring confirmed working, exit code 1 is expected until Phase 1 specs exist.
 
-**⚠ Blocker found, not resolved today:** Docker is not installed on this machine (`docker --version` fails in both Git Bash and PowerShell) and nothing is listening on port 5432 locally. The `postgres-test` service was added to `docker-compose.yml` but **could not be started or verified** in this environment. Before Phase 1 tests can actually run against a real DB, either install Docker Desktop (and confirm the existing dev Postgres setup even works today) or set up Postgres another way (native install, WSL2, remote dev DB). Flagged for the user to resolve before/at the start of next session — not something to guess around.
+**✅ Docker blocker resolved (2026-07-20):** User installed WSL2 + Docker Desktop and restarted. `docker --version` (29.6.1) and `docker ps` both confirmed working. `docker compose up -d postgres-test` started cleanly (pulled `postgres:15`, container `backend-postgres-test-1` on port 5433, `pg_isready` confirmed accepting connections). Needed a local `backend/.env` (gitignored, not committed) with generated `JWT_SECRET`/`CREDENTIAL_ENCRYPTION_SECRET` for `docker-compose.yml`'s interpolation to resolve even when only starting `postgres-test` — the dev `postgres` service was never actually started, only `postgres-test`. `backend/.env.test` created from the committed `.env.test.example` template, also gitignored.
 
 ## Scope — by phase
 
@@ -307,11 +308,11 @@ When this phase is done, every critical backend workflow is verified by automate
 
 **Last completed task:** Pre-freeze QR verification, requested by the user before starting Backend Freeze. Confirmed the QR design already matches ADR-003 (single real Bank QR per PaymentRequest via `provider.generateBankQR()`, provider-agnostic response shape with no bank-specific fields, never derived from a Payment Link). Found the provider's `qrData`/`expiresAt` were fetched in `payment-engine.service.ts` and discarded — never reaching the API response, so even a completed ParamPOS implementation would have no way to surface the QR to the merchant/employee app. User chose to return it ephemerally on the create response rather than persist it (mirrors ADR-002's derive-don't-store treatment of `remainingAmount`). Threaded `qrData`/`qrExpiresAt` through `PaymentExecutionResult` → new `CreatePaymentEngineResult` → `PaymentRequestResponseDto`; `createPaymentRequest` now returns the DTO (via `toResponse()`) instead of the raw entity, consistent with the other endpoints. Build passed, user approved, committed and pushed as `92dc4bb`.
 
-**Current task:** Backend Freeze declared (see Backend Freeze Rules above). No further backend features/endpoints/refactors/architecture changes until the user lifts the freeze. Backend Integration Test Suite infra is set up (Jest/Supertest/@nestjs/testing installed, jest config, `postgres-test` docker-compose service, `.env.test.example`, folder scaffold) — see that section above for the full list. No test files written yet.
+**Current task:** Backend Freeze in effect (see Backend Freeze Rules above). Backend Integration Test Suite: Docker blocker resolved, `postgres-test` running, Phase 1 (Authentication) complete — 8 spec files under `backend/test/integration/auth/`, 42 tests, all passing. One critical bug found by the new tests and fixed under the Freeze's "critical bug fix" allowance (see Completed Audit Fixes #23 and Audit Log below) — commit pending user approval.
 
-**Next task:** Next session, when the user says to resume: first re-ask how to resolve the Docker blocker below (don't assume an answer carried over) so `postgres-test` can actually run — then go straight into Phase 1 (Authentication) integration tests, no further check-ins needed for that transition.
+**Next task:** Phase 2 (Merchant Provider) integration tests: Provider Create, Provider Update, Provider Activate, Active Provider Resolve — under `backend/test/integration/provider/`.
 
-**Blocked by:** Docker is not installed on this machine — `postgres-test` (added to `docker-compose.yml` on 2026-07-19) has not been started or verified. Needs to be resolved (install Docker Desktop, or another way to get a reachable Postgres) before any test that touches the DB can run. Per explicit user instruction (2026-07-19), this must be asked again at the start of next session rather than assumed.
+**Blocked by:** Nothing currently. Docker/`postgres-test` confirmed working (2026-07-20).
 
 **Important reminders:**
 - Only `PaymentStateMachineService.applyTransition()` may change `PaymentRequest.status` (ADR-011).
@@ -478,5 +479,21 @@ Record only important audit-board milestones.
 - `npm audit` reports 25 pre-existing vulnerabilities, all rooted in `@nestjs/cli`/`@nestjs/schematics`/`@nestjs/config`'s own transitive deps (`@angular-devkit/*`, `lodash`, `multer`, `glob`, `picomatch`) — none introduced by the new test tooling, none fixable without breaking major-version bumps. Left untouched: out of scope for test infra setup and forbidden during Backend Freeze (no dependency-upgrade "refactors").
 - **Found a real blocker while trying to verify `postgres-test`:** Docker is not installed on this machine (`docker --version` fails in both Git Bash and PowerShell), and nothing listens on port 5432 locally either — meaning even the existing dev Postgres setup has not been confirmed runnable in this environment. The `postgres-test` service exists in `docker-compose.yml` but was never actually started or tested. Recorded as an explicit blocker for next session rather than assumed away.
 - User's closing instruction for next session: when told to resume, re-ask how to resolve the Docker blocker (don't carry over an assumed answer), get a decision, and then go directly into writing Phase 1 (Authentication) tests — no other check-ins needed for that step. **Session ending for the day.**
+
+**2026-07-20**
+- User installed WSL2 + Docker Desktop and restarted, then said to resume. Per the standing instruction above, re-asked how to proceed rather than assuming — user confirmed to proceed automatically: start `postgres-test`, verify it, then go straight into Phase 1 tests.
+- Verified Docker: `docker --version` → 29.6.1, `docker ps` reachable, `wsl -l -v` shows `docker-desktop` running.
+- `docker compose up -d postgres-test` initially failed: `docker-compose.yml` interpolates `JWT_SECRET`/`CREDENTIAL_ENCRYPTION_SECRET` for the (unrelated) `backend` service on every invocation, even when only starting `postgres-test`, and no `backend/.env` existed yet in this environment. Created `backend/.env` (gitignored, local-only, generated secrets via `openssl rand -hex 32`) to unblock — the dev `postgres` service itself was never started this session, only `postgres-test`.
+- `docker compose up -d postgres-test` succeeded: pulled `postgres:15`, container `backend-postgres-test-1` up on `0.0.0.0:5433`, `pg_isready` confirmed accepting connections. Copied `backend/.env.test.example` → `backend/.env.test` (gitignored) unchanged.
+- Read through `auth.controller.ts`, `auth.service.ts`, the `Merchant`/`Employee`/`MerchantSession` entities, all `auth/dto/*`, `database.module.ts` (confirmed `migrationsRun: true`, so a fresh `postgres-test` gets its schema from the existing migrations automatically), and `database-connection.options.ts`.
+- Built the test infra: `test/helpers/test-app.helper.ts` (`createTestApp()` boots the real `AppModule` with the same `setGlobalPrefix('api')` + `ValidationPipe` as `main.ts`; `clearDatabase()` truncates all 6 tables with `RESTART IDENTITY CASCADE` between tests), `test/factories/merchant.factory.ts` (unique-per-call merchant registration payloads), `test/utils/auth-flow.util.ts` (`registerAndLoginMerchant()`, `inviteAndActivateEmployee()` — reusable end-to-end flows so individual specs don't re-implement the same multi-step setup). Added `maxWorkers: 1` to `test/jest-integration.json` since all spec files share one `postgres-test` instance with no per-test schema isolation — running spec files in parallel would let one file's `clearDatabase()` wipe another's in-flight fixtures.
+- Added `jsonwebtoken` + `@types/jsonwebtoken` as explicit devDependencies (previously only a transitive dep of `@nestjs/jwt`/`passport-jwt`) since specs decode/sign tokens directly for assertions.
+- Wrote Phase 1 (Authentication): 8 spec files covering every item in scope — Merchant Register, Merchant Login, Refresh Token, Logout, Employee Invite, Employee Accept + Set Password, Employee Login/Refresh/Logout, Authorization (JwtAuthGuard: missing/malformed/forged/expired tokens; RolesGuard: owner-only route).
+- **First test run (41/42 passing) caught a real, previously-undetected bug**: `AuthService.createEmployee()` took `merchantId` directly from the client-supplied `CreateEmployeeDto` body and never checked it against the authenticated owner's own id — any authenticated OWNER could invite an employee into a **different merchant's** account by supplying that merchant's UUID, a full tenant-isolation break. This slipped through the original audit (Phase 2, `auth.service.ts` marked 🟢) because the review focused on the logout-scoping bug found at the time and didn't check this endpoint's ownership scoping. The rest of the codebase already has the correct pattern for this (`merchant-payment-provider.service.ts`'s `resolveMerchantId(user)`, which always derives the merchant id from the JWT `sub`, never from client input) — `createEmployee` was the one outlier.
+- Per the Freeze rules ("fixing critical bugs found during testing" is allowed) and the project's "do not modify Authorization without asking" rule, stopped and presented the finding plus a failing-test reproduction to the user before touching anything. User chose to fix immediately.
+- Fix: removed `merchantId` from `CreateEmployeeDto` entirely (client can no longer supply it); `AuthService.createEmployee()` now resolves the merchant from `actingUser.sub` (the OWNER's own JWT), matching `resolveMerchantId`'s pattern and the spirit of ADR-005 ("merchantId always comes from JWT, never the client"). Updated all affected specs (`employee-invite`, `employee-accept`, `employee-login`, `authorization`) to match the new contract, and added two new regression tests: a DB-level check that an invited employee's `merchantId` always matches the acting owner's own merchant (never a different tenant), and a whitelist-rejection check that a client-supplied `merchantId` in the request body now gets `400`.
+- Build passed (`npm run build`), full suite green: **8 suites, 42 tests, all passing.**
+- Commit pending explicit user approval (per Git rules, not auto-committed).
+- Next: Phase 2 (Merchant Provider) integration tests — Provider Create, Provider Update, Provider Activate, Active Provider Resolve.
 
 Future sessions will append new entries here.
