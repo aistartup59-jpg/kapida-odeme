@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -27,19 +27,19 @@ export class MerchantPaymentProviderController {
   @Patch(':id')
   update(
     @CurrentUser() user: { sub?: string; type?: string },
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateMerchantPaymentProviderDto,
   ) {
     return this.merchantPaymentProviderService.update(user, id, dto);
   }
 
   @Delete(':id')
-  remove(@CurrentUser() user: { sub?: string; type?: string }, @Param('id') id: string) {
+  remove(@CurrentUser() user: { sub?: string; type?: string }, @Param('id', ParseUUIDPipe) id: string) {
     return this.merchantPaymentProviderService.remove(user, id);
   }
 
   @Post(':id/activate')
-  activate(@CurrentUser() user: { sub?: string; type?: string }, @Param('id') id: string) {
+  activate(@CurrentUser() user: { sub?: string; type?: string }, @Param('id', ParseUUIDPipe) id: string) {
     return this.merchantPaymentProviderService.activate(user, id);
   }
 }

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -30,7 +30,7 @@ export class PaymentController {
 
   @Get(':paymentRequestId')
   getPaymentRequest(
-    @Param('paymentRequestId') paymentRequestId: string,
+    @Param('paymentRequestId', ParseUUIDPipe) paymentRequestId: string,
     @CurrentUser() user: { sub?: string; type?: string },
   ) {
     return this.paymentService.getPaymentRequestById(paymentRequestId, user);
@@ -38,7 +38,7 @@ export class PaymentController {
 
   @Post(':paymentRequestId/transactions')
   recordTransaction(
-    @Param('paymentRequestId') paymentRequestId: string,
+    @Param('paymentRequestId', ParseUUIDPipe) paymentRequestId: string,
     @Body() dto: CreateTransactionRequestDto,
     @CurrentUser() user: { sub?: string; type?: string },
   ) {
@@ -47,7 +47,7 @@ export class PaymentController {
 
   @Post(':paymentRequestId/cancel')
   cancelPaymentRequest(
-    @Param('paymentRequestId') paymentRequestId: string,
+    @Param('paymentRequestId', ParseUUIDPipe) paymentRequestId: string,
     @CurrentUser() user: { sub?: string; type?: string },
   ) {
     return this.paymentService.cancelPaymentRequest(paymentRequestId, user);
