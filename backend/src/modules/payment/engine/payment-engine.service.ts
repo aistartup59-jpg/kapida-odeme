@@ -210,7 +210,10 @@ export class PaymentEngineService implements PaymentEngine {
       providerReference: request.providerReference,
     });
 
-    const paymentRequest = await this.paymentRequestRepository.findOne({ where: { id: request.paymentRequestId } });
+    const paymentRequest = await this.paymentRequestRepository.findOne({
+      where: { id: request.paymentRequestId },
+      relations: ['transactions'],
+    });
 
     if (!paymentRequest) {
       throw new NotFoundException(`PaymentRequest ${request.paymentRequestId} not found.`);

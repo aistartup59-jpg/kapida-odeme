@@ -78,7 +78,7 @@ export class PaymentService {
     paymentRequestId: string,
     payload: CreateTransactionRequestDto,
     user?: { sub?: string; type?: string },
-  ): Promise<PaymentRequest> {
+  ): Promise<PaymentRequestResponseDto> {
     if (!payload?.amount || payload.amount <= 0) {
       throw new BadRequestException('amount must be greater than 0.');
     }
@@ -114,7 +114,7 @@ export class PaymentService {
       throw new BadRequestException(result.error?.message ?? 'Unable to record transaction.');
     }
 
-    return result.data;
+    return this.toResponse(result.data);
   }
 
   // Merchant callers see every PaymentRequest owned by their merchant. Employee callers
