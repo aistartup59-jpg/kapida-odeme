@@ -103,8 +103,12 @@ export class MerchantPaymentProviderService {
     // Deactivating every other provider and activating this one must commit as a single
     // unit: as two separate statements, concurrent activate() calls for different
     // providers could each complete their deactivate-then-activate pair interleaved,
-    // leaving more than one provider isActive at once.
+    // leaving more than one provider isActive at once. Locking every row for the merchant
+    // in a fixed order first (lockAllForMerchant) additionally prevents a deadlock between
+    // two concurrent transactions' deactivateAllForMerchant bulk updates once the merchant
+    // has 3+ provider rows.
     const saved = await this.merchantRepository.manager.transaction(async (manager) => {
+      await this.providerRepository.lockAllForMerchant(merchantId, manager);
       await this.providerRepository.deactivateAllForMerchant(merchantId, manager);
       entity.isActive = true;
       return this.providerRepository.save(entity, manager);

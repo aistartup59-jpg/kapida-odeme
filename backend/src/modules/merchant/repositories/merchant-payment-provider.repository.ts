@@ -39,4 +39,19 @@ export class MerchantPaymentProviderRepository {
     const repository = manager ? manager.getRepository(MerchantPaymentProvider) : this.repository;
     await repository.update({ merchantId }, { isActive: false });
   }
+
+  // Locks every row for the merchant in a fixed order (id ASC) before deactivateAllForMerchant's
+  // bulk UPDATE runs. Without this, two concurrent activate() calls each running their own
+  // multi-row UPDATE can acquire per-row locks in different orders and deadlock (Postgres
+  // error 40P01) once the merchant has 3+ provider rows — always locking in the same order
+  // is the standard deadlock-avoidance technique for concurrent multi-row updates.
+  async lockAllForMerchant(merchantId: string, manager: EntityManager): Promise<void> {
+    await manager
+      .getRepository(MerchantPaymentProvider)
+      .createQueryBuilder('provider')
+      .setLock('pessimistic_write')
+      .where('provider.merchantId = :merchantId', { merchantId })
+      .orderBy('provider.id', 'ASC')
+      .getMany();
+  }
 }
