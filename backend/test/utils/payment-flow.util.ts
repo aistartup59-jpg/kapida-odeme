@@ -28,9 +28,10 @@ export function recordTransaction(
   paymentRequestId: string,
   amount: number,
   paymentMethod = 'CASH',
+  providerReference?: string,
 ) {
   return request(app.getHttpServer())
     .post(`/api/payments/${paymentRequestId}/transactions`)
     .set('Authorization', `Bearer ${accessToken}`)
-    .send({ amount, paymentMethod });
+    .send({ amount, paymentMethod, ...(providerReference ? { providerReference } : {}) });
 }
