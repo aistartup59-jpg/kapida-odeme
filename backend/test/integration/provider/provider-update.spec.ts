@@ -59,6 +59,17 @@ describe('Merchant Provider - Update', () => {
     expect(response.status).toBe(400);
   });
 
+  it('returns 400 (not 500) for a malformed provider id (regression: ParseUUIDPipe)', async () => {
+    const { accessToken } = await registerAndLoginMerchant(app);
+
+    const response = await request(app.getHttpServer())
+      .patch('/api/merchant/payment-providers/not-a-uuid')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ credentials: { apiKey: 'key' } });
+
+    expect(response.status).toBe(400);
+  });
+
   it('returns 404 for an unknown provider id', async () => {
     const { accessToken } = await registerAndLoginMerchant(app);
 
