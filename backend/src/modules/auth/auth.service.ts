@@ -219,21 +219,17 @@ export class AuthService {
     payload: CreateEmployeeDto,
     actingUser?: { sub?: string; type?: string; role?: string },
   ): Promise<{ success: true; invitationToken: string; expiresAt: string; employeeId: string }> {
-    if (actingUser?.role !== Role.OWNER) {
+    if (actingUser?.role !== Role.OWNER || actingUser?.type !== 'merchant' || !actingUser?.sub) {
       throw new ForbiddenException('Only owners can create employees.');
-    }
-
-    if (!payload?.merchantId?.trim()) {
-      throw new BadRequestException('Merchant ID is required.');
     }
 
     if (!payload?.email?.trim()) {
       throw new BadRequestException('Email is required.');
     }
 
-    const merchant = await this.merchantRepository.findOne({ where: { id: payload.merchantId } });
+    const merchant = await this.merchantRepository.findOne({ where: { id: actingUser.sub } });
     if (!merchant) {
-      throw new BadRequestException('Merchant not found.');
+      throw new ForbiddenException('Only owners can create employees.');
     }
 
     const existingEmployee = await this.employeeRepository.findOne({ where: { email: payload.email } });
