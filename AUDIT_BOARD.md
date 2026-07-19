@@ -215,7 +215,7 @@ Resume order once Integration Tests pass: Flutter Development → Website Develo
 
 # Backend Integration Test Suite
 
-**Status:** Phase 1 (Authentication) complete — 8 spec files, 42 tests, all passing against `postgres-test`. Phase 2 (Merchant Provider) starts next session.
+**Status:** Phase 1 (Authentication) and Phase 2 (Merchant Provider) complete — 12 spec files, 61 tests, all passing against `postgres-test`. Phase 3 (Payment Creation) next.
 
 ## Stack
 
@@ -308,9 +308,9 @@ When this phase is done, every critical backend workflow is verified by automate
 
 **Last completed task:** Pre-freeze QR verification, requested by the user before starting Backend Freeze. Confirmed the QR design already matches ADR-003 (single real Bank QR per PaymentRequest via `provider.generateBankQR()`, provider-agnostic response shape with no bank-specific fields, never derived from a Payment Link). Found the provider's `qrData`/`expiresAt` were fetched in `payment-engine.service.ts` and discarded — never reaching the API response, so even a completed ParamPOS implementation would have no way to surface the QR to the merchant/employee app. User chose to return it ephemerally on the create response rather than persist it (mirrors ADR-002's derive-don't-store treatment of `remainingAmount`). Threaded `qrData`/`qrExpiresAt` through `PaymentExecutionResult` → new `CreatePaymentEngineResult` → `PaymentRequestResponseDto`; `createPaymentRequest` now returns the DTO (via `toResponse()`) instead of the raw entity, consistent with the other endpoints. Build passed, user approved, committed and pushed as `92dc4bb`.
 
-**Current task:** Backend Freeze in effect (see Backend Freeze Rules above). Backend Integration Test Suite: Docker blocker resolved, `postgres-test` running, Phase 1 (Authentication) complete — 8 spec files under `backend/test/integration/auth/`, 42 tests, all passing. One critical bug found by the new tests and fixed under the Freeze's "critical bug fix" allowance (see Completed Audit Fixes #23 and Audit Log below) — commit pending user approval.
+**Current task:** Backend Freeze in effect (see Backend Freeze Rules above). Backend Integration Test Suite: Phase 1 (Authentication, 8 spec files, 42 tests) and Phase 2 (Merchant Provider, 4 spec files, 19 tests) both complete and passing — 12 suites / 61 tests total. Phase 1 turned up one critical bug (cross-tenant employee creation, fixed — see Completed Audit Fixes #23). Phase 2 found no bugs: `findOwnedProvider`'s merchant-scoped lookup already correctly rejects cross-tenant access on update/activate (verified by dedicated regression tests).
 
-**Next task:** Phase 2 (Merchant Provider) integration tests: Provider Create, Provider Update, Provider Activate, Active Provider Resolve — under `backend/test/integration/provider/`.
+**Next task:** Phase 3 (Payment Creation) integration tests: Payment Create, Validation, JWT ownership, Employee ownership — under `backend/test/integration/payment/`.
 
 **Blocked by:** Nothing currently. Docker/`postgres-test` confirmed working (2026-07-20).
 
@@ -493,7 +493,13 @@ Record only important audit-board milestones.
 - Per the Freeze rules ("fixing critical bugs found during testing" is allowed) and the project's "do not modify Authorization without asking" rule, stopped and presented the finding plus a failing-test reproduction to the user before touching anything. User chose to fix immediately.
 - Fix: removed `merchantId` from `CreateEmployeeDto` entirely (client can no longer supply it); `AuthService.createEmployee()` now resolves the merchant from `actingUser.sub` (the OWNER's own JWT), matching `resolveMerchantId`'s pattern and the spirit of ADR-005 ("merchantId always comes from JWT, never the client"). Updated all affected specs (`employee-invite`, `employee-accept`, `employee-login`, `authorization`) to match the new contract, and added two new regression tests: a DB-level check that an invited employee's `merchantId` always matches the acting owner's own merchant (never a different tenant), and a whitelist-rejection check that a client-supplied `merchantId` in the request body now gets `400`.
 - Build passed (`npm run build`), full suite green: **8 suites, 42 tests, all passing.**
-- Commit pending explicit user approval (per Git rules, not auto-committed).
-- Next: Phase 2 (Merchant Provider) integration tests — Provider Create, Provider Update, Provider Activate, Active Provider Resolve.
+- User approved; committed as three commits (fix, tests, docs) and pushed to `origin/main`: `f1f3601` (fix), `812c625` (tests), `34c3c20` (docs).
+- User: "commitleyip phase 2 ye geçelim" — proceeded straight into Phase 2 (Merchant Provider) per the established continuous-mode pattern (only interrupt for real bugs).
+- Read `merchant-payment-provider.controller.ts`/`.service.ts`/`.repository.ts`, both DTOs, the `MerchantPaymentProvider` entity, `ProviderType` enum, and `provider-resolver.service.ts` (the "Active Provider Resolve" item in scope — an internal-only class with no HTTP route, consumed by the Phase 3 payment engine).
+- Wrote Phase 2: 4 spec files — `provider-create` (register, providerType/credentials validation, no credential leak in response, per-merchant list scoping), `provider-update` (credential rotation, no-op update, empty-credentials rejection, 404 on unknown/cross-tenant id), `provider-activate` (activates, deactivates the previously-active provider atomically, 404 on unknown/cross-tenant id), `active-provider-resolve` (exercises `ProviderResolverService` directly via the DI container — `NoActiveProviderException` when none active, resolves once activated, resolves independently per merchant, resolves the newly-activated row after switching). Added `test/utils/provider-flow.util.ts` (`registerProvider`, `registerAndActivateProvider`) alongside the existing `auth-flow.util.ts`.
+- First run: 60/61 passing — one self-inflicted test bug, not a product bug. The provider-switch resolver test used `IYZICO` for the second provider, but only `PARAM_POS` is registered in `ProviderRegistry` (per the original Phase 3 audit note); `resolveActiveProvider()` correctly threw `NotFoundException: Payment provider not registered: IYZICO`. Fixed the test to use two `PARAM_POS` rows distinguished by `credentialsReference` instead, which still exercises the "switch which row is active" path without depending on an unimplemented adapter.
+- **No product bugs found in Phase 2.** Unlike the Phase 1 `createEmployee` bug, every provider endpoint already scopes correctly: `findOwnedProvider()` (used by `update`/`activate`) filters by `{ id, merchantId }` together, so cross-tenant update/activate attempts correctly return `404` (verified by dedicated regression tests here) rather than leaking or mutating another merchant's provider config. `resolveMerchantId()` (the same pattern the Phase 1 fix adopted) is used consistently throughout this service.
+- Build passed, full suite green: **12 suites, 61 tests, all passing.**
+- Next: Phase 3 (Payment Creation) integration tests — Payment Create, Validation, JWT ownership, Employee ownership.
 
 Future sessions will append new entries here.
