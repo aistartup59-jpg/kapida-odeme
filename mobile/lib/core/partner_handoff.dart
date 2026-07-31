@@ -2,7 +2,7 @@ import 'app_config.dart';
 
 // A collection handed over by an order platform's courier app (ADR-015):
 //
-//   kapidaodeme://collect?token=hof_<publicId>_<secret>&returnUrl=partner://order/4471
+//   payals://collect?token=hof_<publicId>_<secret>&returnUrl=partner://order/4471
 //
 // The link carries no amount and no merchant. Those live inside the token, which the
 // platform's backend minted with the merchant's API key — so what the courier is asked to

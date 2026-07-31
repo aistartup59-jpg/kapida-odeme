@@ -2,7 +2,7 @@
 
 ## Overview
 
-Authorization in Kapıda Ödeme is structured around merchant ownership and employee delegation. Merchants own the merchant workspace, while employees act on behalf of that merchant within the approved boundaries.
+Authorization in PayALS is structured around merchant ownership and employee delegation. Merchants own the merchant workspace, while employees act on behalf of that merchant within the approved boundaries.
 
 ## Permission model
 

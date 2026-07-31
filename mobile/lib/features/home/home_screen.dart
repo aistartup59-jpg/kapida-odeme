@@ -86,7 +86,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Kapıda Ödeme'),
+        title: const Text('PayALS'),
         actions: [
           IconButton(onPressed: _busy ? null : _logout, icon: const Icon(Icons.logout), tooltip: 'Çıkış'),
         ],

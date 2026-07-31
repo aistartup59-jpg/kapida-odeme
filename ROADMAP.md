@@ -1,6 +1,6 @@
 # Project Roadmap
 
-This file tracks high-level sprint progress for the Kapıda Ödeme project.
+This file tracks high-level sprint progress for the PayALS project.
 
 - Sprint 0 ✅ Completed
 - Sprint 1 ✅ Completed

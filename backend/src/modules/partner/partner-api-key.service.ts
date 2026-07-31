@@ -24,7 +24,9 @@ export interface PartnerApiKeySummary {
   createdAt: Date;
 }
 
-export const PARTNER_API_KEY_PREFIX = 'kpd';
+// Parsing is prefix-exact, so changing this invalidates every key already handed to a
+// platform. It is settled before any key is issued, not after.
+export const PARTNER_API_KEY_PREFIX = 'pay';
 
 @Injectable()
 export class PartnerApiKeyService {

@@ -1,5 +1,5 @@
-name: kapida_odeme_mobile
-description: Kapıda Ödeme POS app — bank QR, NFC and cash collection at the door.
+name: payals_pos
+description: PayALS POS app — bank QR, NFC and cash collection at the door.
 publish_to: none
 version: 0.1.0+1
 

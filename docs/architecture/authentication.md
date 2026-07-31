@@ -2,7 +2,7 @@
 
 ## Overview
 
-Kapıda Ödeme uses a merchant-first authentication model with separate flows for merchants and employees. The current approved approach is centered on secure sign-in, password recovery, invitation-based employee onboarding, and token refresh.
+PayALS uses a merchant-first authentication model with separate flows for merchants and employees. The current approved approach is centered on secure sign-in, password recovery, invitation-based employee onboarding, and token refresh.
 
 ## Approved authentication flows
 

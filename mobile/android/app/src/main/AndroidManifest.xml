@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
-        android:label="Kapıda Ödeme"
+        android:label="PayALS"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -29,14 +29,14 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
             <!-- Hand-off from an order platform's courier app (ADR-015):
-                 kapidaodeme://collect?orderId=...&amount=...&currency=TRY&returnUrl=...
+                 payals://collect?token=<hand-off token>&returnUrl=<platform link>
                  The activity is singleTop, so a hand-off arriving while the app is already
                  open is delivered to the running instance instead of stacking a second one. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="kapidaodeme" android:host="collect"/>
+                <data android:scheme="payals" android:host="collect"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

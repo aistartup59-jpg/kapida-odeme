@@ -1,6 +1,6 @@
 # Project Overview
 
-Kapıda Ödeme is a merchant-focused payment platform for taking payment at the door, on a POS device carried by a delivery employee: a real bank QR, an NFC card read, or cash (ADR-013). The product is organized around merchants, employees, payment requests, and transactions, with a long-term emphasis on maintainability and scalable architecture.
+PayALS is a merchant-focused payment platform for taking payment at the door, on a POS device carried by a delivery employee: a real bank QR, an NFC card read, or cash (ADR-013). The product is organized around merchants, employees, payment requests, and transactions, with a long-term emphasis on maintainability and scalable architecture.
 
 ## Documentation structure
 

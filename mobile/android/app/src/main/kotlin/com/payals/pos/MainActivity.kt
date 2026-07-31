@@ -1,4 +1,4 @@
-package tr.kapidaodeme.kapida_odeme_mobile
+package com.payals.pos
 
 import io.flutter.embedding.android.FlutterActivity
 

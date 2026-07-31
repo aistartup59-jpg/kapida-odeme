@@ -4,7 +4,7 @@ _Source of truth for current project state. Generated from repository contents a
 
 ## Current Project Goal
 
-Kapıda Ödeme is a hybrid payment platform connecting merchants and delivery employees. Payment is accepted at the door on a POS device via QR (real Bank QR / TR Karekod), NFC, or Cash (ADR-013), including hybrid/partial payment flows across multiple transactions per order.
+PayALS is a hybrid payment platform connecting merchants and delivery employees. Payment is accepted at the door on a POS device via QR (real Bank QR / TR Karekod), NFC, or Cash (ADR-013), including hybrid/partial payment flows across multiple transactions per order.
 
 The backend is built to remain provider-independent, platform-independent, API-first, and modular (see Locked Architecture in `CLAUDE.md`).
 

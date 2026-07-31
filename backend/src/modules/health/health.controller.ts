@@ -6,7 +6,7 @@ export class HealthController {
   getHealth() {
     return {
       status: 'ok',
-      service: 'kapida-odeme-api',
+      service: 'payals-api',
       version: '1.0.0',
     };
   }

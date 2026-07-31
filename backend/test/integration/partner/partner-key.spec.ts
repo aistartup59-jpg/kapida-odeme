@@ -26,7 +26,7 @@ describe('Partner - API Keys', () => {
     const issued = await issuePartnerKey(app, accessToken, 'Getir');
 
     expect(issued.label).toBe('Getir');
-    expect(issued.apiKey).toMatch(/^kpd_[0-9a-f]{16}_[0-9a-f]{64}$/);
+    expect(issued.apiKey).toMatch(/^pay_[0-9a-f]{16}_[0-9a-f]{64}$/);
 
     // Listing exposes what the merchant needs to recognise a key, never the secret itself —
     // only its hash is stored, so a lost key is replaced rather than recovered.

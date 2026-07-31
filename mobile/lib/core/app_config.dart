@@ -10,7 +10,9 @@ class AppConfig {
     defaultValue: 'http://10.0.2.2:3000/api',
   );
 
-  // Scheme the order platform's app uses to hand a collection over to us (ADR-015).
-  static const deepLinkScheme = 'kapidaodeme';
+  // Scheme the order platform's app uses to hand a collection over to us (ADR-015). Once a
+  // platform has shipped an integration against it, changing it requires a release from them,
+  // not from us.
+  static const deepLinkScheme = 'payals';
   static const deepLinkCollectHost = 'collect';
 }

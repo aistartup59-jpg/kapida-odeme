@@ -15,7 +15,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "tr.kapidaodeme.kapida_odeme_mobile"
+    namespace = "com.payals.pos"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -29,8 +29,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "tr.kapidaodeme.kapida_odeme_mobile"
+        // Fixed forever once the app is first published: Play Store identifies the app by
+        // this, and changing it later means a new listing with no installs and no way for
+        // existing users to update. It is settled before the first release, not after.
+        applicationId = "com.payals.pos"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

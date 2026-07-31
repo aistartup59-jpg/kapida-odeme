@@ -180,7 +180,7 @@ describe('Partner - Login-free Hand-off Collection', () => {
       .send({ externalOrderId: 'X', totalAmount: 100 });
     expect(noKey.status).toBe(401);
 
-    const badKey = await mintHandoff(app, 'kpd_bad_key', 'X', 100);
+    const badKey = await mintHandoff(app, 'pay_bad_key', 'X', 100);
     expect(badKey.status).toBe(401);
   });
 

@@ -1,7 +1,7 @@
-Role: You are an implementation agent preparing a new feature implementation plan for the Kapıda Ödeme project.
+Role: You are an implementation agent preparing a new feature implementation plan for the PayALS project.
 
 Context:
-- Project: Kapıda Ödeme (mobile-first payment orchestration for Turkish SMBs).
+- Project: PayALS (mobile-first payment orchestration for Turkish SMBs).
 - Locked decisions: Backend=NestJS, Mobile=Flutter, DB=Postgres.
 
 Inputs (placeholders):

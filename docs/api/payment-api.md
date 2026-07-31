@@ -23,7 +23,7 @@ The courier delivering for an order platform never signs in. Nothing in the cont
 
 ```
 POST /partner/handoffs
-X-Api-Key: kpd_<publicId>_<secret>
+X-Api-Key: pay_<publicId>_<secret>
 { "externalOrderId": "UBER-4471", "totalAmount": 250, "currency": "TRY" }
 
 → { "paymentRequestId": "...", "handoffToken": "hof_<publicId>_<secret>", "expiresAt": "..." }
@@ -34,7 +34,7 @@ Minting twice for one order returns the PaymentRequest that already exists — a
 **2. The platform's app deep-links into ours**, carrying only the token:
 
 ```
-kapidaodeme://collect?token=hof_<publicId>_<secret>&returnUrl=<platform link>
+payals://collect?token=hof_<publicId>_<secret>&returnUrl=<platform link>
 ```
 
 **3. The courier collects**, authorised by the token alone. No endpoint takes a payment id — the token names the one payment it may act on, so there is nothing to substitute:
@@ -51,7 +51,7 @@ The token expires four hours after minting. Once the payment is PAID the app ret
 
 ```
 GET /partner/payments?externalOrderId=UBER-4471
-X-Api-Key: kpd_<publicId>_<secret>
+X-Api-Key: pay_<publicId>_<secret>
 ```
 
 The merchant is derived from the key, never from the request. The response is the standard payment payload, including the derived `remainingAmount` and every Transaction.

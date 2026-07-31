@@ -4,7 +4,7 @@ import { Merchant } from '../../auth/entities/merchant.entity';
 
 // Credential an order platform (Uber Eats, Getir, Yemeksepeti, Trendyol Go, ...) presents to
 // open payment requests for one merchant (ADR-015). The issued key reads
-// `kpd_<publicId>_<secret>`: publicId is stored in the clear so a presented key can be looked
+// `pay_<publicId>_<secret>`: publicId is stored in the clear so a presented key can be looked
 // up in one indexed query, and only the secret half is hashed — the same split the auth
 // module already relies on for refresh and invitation tokens, which are looked up by their
 // owning row rather than by the token itself.

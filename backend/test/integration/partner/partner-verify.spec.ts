@@ -89,7 +89,7 @@ describe('Partner - Payment Verification', () => {
     expect(noKey.status).toBe(401);
 
     expect((await verifyAsPartner(app, 'not-a-key', 'ORDER-1')).status).toBe(401);
-    expect((await verifyAsPartner(app, `kpd_${'a'.repeat(16)}_${'b'.repeat(64)}`, 'ORDER-1')).status).toBe(401);
+    expect((await verifyAsPartner(app, `pay_${'a'.repeat(16)}_${'b'.repeat(64)}`, 'ORDER-1')).status).toBe(401);
   });
 
   it('rejects a key whose secret has been tampered with', async () => {
@@ -98,7 +98,7 @@ describe('Partner - Payment Verification', () => {
     await mintHandoffOk(app, key.apiKey, 'ORDER-1', 100);
 
     // Same publicId, so the row is found — only the secret check can reject this.
-    const tampered = `kpd_${key.publicId}_${'0'.repeat(64)}`;
+    const tampered = `pay_${key.publicId}_${'0'.repeat(64)}`;
 
     expect((await verifyAsPartner(app, tampered, 'ORDER-1')).status).toBe(401);
   });

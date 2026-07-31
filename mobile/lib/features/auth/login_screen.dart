@@ -63,7 +63,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Kapıda Ödeme', style: Theme.of(context).textTheme.headlineMedium),
+                Text('PayALS', style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 4),
                 Text('Kapıda tahsilat', style: Theme.of(context).textTheme.bodyMedium),
                 const SizedBox(height: 32),

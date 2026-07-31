@@ -1,6 +1,20 @@
 # Project
 
-Kapıda Ödeme is a hybrid payment platform for merchants and delivery employees.
+PayALS is a hybrid payment platform for merchants and delivery employees.
+
+# Naming
+
+The product and the app are called PayALS. The repository directory, the git remote and the
+database names still say kapida-odeme; those are internal and were left alone on purpose.
+
+Fixed identifiers, none of which may be changed casually:
+
+- Android applicationId: com.payals.pos — frozen forever once the app is first published.
+- Deep link scheme: payals://collect — changing it after a platform ships an integration
+  requires a release from them, not from us.
+- Partner API key prefix: pay_ — parsing is prefix-exact, so changing it invalidates every
+  key already issued.
+- Hand-off token prefix: hof_ — describes the mechanism, not the brand, so it stays.
 
 The backend must remain:
 
@@ -297,7 +311,7 @@ Never commit or push without explicit approval.
 
 # Payment Orchestration
 
-Kapıda Ödeme is a payment orchestration platform.
+PayALS is a payment orchestration platform.
 
 Business logic must never depend on a specific payment provider.
 

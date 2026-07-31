@@ -2,7 +2,7 @@
 
 ## Overview
 
-Kapıda Ödeme supports a merchant-centric payment model built around payment requests, transactions, and payment outcomes that may be completed through multiple successful payment attempts.
+PayALS supports a merchant-centric payment model built around payment requests, transactions, and payment outcomes that may be completed through multiple successful payment attempts.
 
 ## Locked architecture decisions
 
@@ -67,7 +67,7 @@ Kapıda Ödeme supports a merchant-centric payment model built around payment re
 
 #### Purpose
 
-Kapıda Ödeme is a payment orchestration platform.
+PayALS is a payment orchestration platform.
 
 It must never depend on a specific payment provider.
 
