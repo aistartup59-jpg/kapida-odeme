@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { createTestApp, clearDatabase } from '../../helpers/test-app.helper';
 import { registerAndLoginMerchant } from '../../utils/auth-flow.util';
 import { registerProvider } from '../../utils/provider-flow.util';
+import { installMockProvider } from '../../utils/mock-provider.util';
 
 // Regression for #8 "Make provider activation atomic" (033443b). Before the fix,
 // deactivateAllForMerchant + save ran as two separate statements — concurrent activate()
@@ -15,6 +16,12 @@ describe('Race - Provider Activation', () => {
 
   beforeAll(async () => {
     app = await createTestApp();
+    // A merchant may only configure a provider the registry actually holds (ADR-014), and
+    // only PARAM_POS ships an adapter today. Installing these makes it possible to build the
+    // multi-row provider set the deadlock regression below needs.
+    for (const providerId of ['IYZICO', 'PAY_TR', 'SIPAY']) {
+      installMockProvider(app, providerId);
+    }
   });
 
   afterEach(async () => {

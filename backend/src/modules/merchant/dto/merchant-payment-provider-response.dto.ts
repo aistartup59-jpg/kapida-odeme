@@ -1,8 +1,8 @@
-import { ProviderType } from '../../payment-provider/enums/provider-type.enum';
+import { ProviderId } from '../../payment-provider/core/provider-id.model';
 
 export interface MerchantPaymentProviderResponseDto {
   id: string;
-  providerType: ProviderType;
+  providerType: ProviderId;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

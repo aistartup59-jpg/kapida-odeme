@@ -12,7 +12,8 @@ The payment API is expected to support payment request and transaction workflows
 - remainingAmount should be derived rather than stored.
 - PaymentRequest status should use the approved values: PENDING, PARTIALLY_PAID, PAID, FAILED, EXPIRED, and CANCELLED.
 - QR-based payments are real bank QR flows, not payment-link QR flows.
-- PaymentMethod and DeliveryChannel should remain separate concepts in API contract design.
+- PaymentMethod accepts QR, NFC and CASH only (ADR-013). Payment Links and the `deliveryChannel` field are not part of the contract.
+- The create response carries `qrData` / `qrExpiresAt` for QR only; the bank QR payload is provider-issued and never persisted.
 
 ## Current status
 

@@ -16,7 +16,6 @@ import {
   CancelPaymentEngineRequest,
   CreatePaymentEngineRequest,
   CreatePaymentEngineResult,
-  CreatePaymentLinkEngineRequest,
   GenerateQrEngineRequest,
   GetPaymentStatusEngineRequest,
   PaymentEngine,
@@ -54,7 +53,6 @@ export class PaymentEngineService implements PaymentEngine {
       paidAmount: 0,
       currency: request.currency,
       paymentMethod: request.paymentMethod,
-      deliveryChannel: request.deliveryChannel,
       status: initialState,
       description: request.description,
       expiresAt: request.expiresAt,
@@ -91,15 +89,15 @@ export class PaymentEngineService implements PaymentEngine {
       data: saved,
       qrData: executionResult.qrData,
       qrExpiresAt: executionResult.qrExpiresAt,
-      linkUrl: executionResult.linkUrl,
-      linkExpiresAt: executionResult.linkExpiresAt,
     };
   }
 
-  // CASH has no provider involvement, and NFC completion is reported later through the
-  // transaction endpoint rather than triggered at PaymentRequest creation time.
+  // QR is the only method that needs the provider up front, because the bank QR payload has
+  // to be issued before the customer can scan it. CASH has no provider involvement at all,
+  // and an NFC card is read by the POS device itself — both are reported afterwards through
+  // the transaction endpoint rather than triggered at PaymentRequest creation time.
   private requiresProviderExecution(paymentMethod: PaymentMethod): boolean {
-    return paymentMethod === PaymentMethod.QR || paymentMethod === PaymentMethod.PAYMENT_LINK;
+    return paymentMethod === PaymentMethod.QR;
   }
 
   // Orchestration only: dispatches to the provider capability that matches the requested
@@ -120,15 +118,6 @@ export class PaymentEngineService implements PaymentEngine {
             credentials: { reference: context.credentialsReference },
           });
           return { success: true, qrData: qrResponse.qrData, qrExpiresAt: qrResponse.expiresAt };
-        }
-        case PaymentMethod.PAYMENT_LINK: {
-          const linkResponse = await provider.createPaymentLink({
-            reference: context.paymentRequestId,
-            amount: context.amount,
-            currency: context.currency,
-            credentials: { reference: context.credentialsReference },
-          });
-          return { success: true, linkUrl: linkResponse.url, linkExpiresAt: linkResponse.expiresAt };
         }
         default:
           return { success: true };
@@ -167,10 +156,6 @@ export class PaymentEngineService implements PaymentEngine {
 
   generateQr(_request: GenerateQrEngineRequest): Promise<PaymentEngineResult> {
     throw new NotImplementedException('PaymentEngine.generateQr is not implemented yet.');
-  }
-
-  createPaymentLink(_request: CreatePaymentLinkEngineRequest): Promise<PaymentEngineResult> {
-    throw new NotImplementedException('PaymentEngine.createPaymentLink is not implemented yet.');
   }
 
   processNfc(_request: ProcessNfcEngineRequest): Promise<PaymentEngineResult> {

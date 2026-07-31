@@ -4,7 +4,7 @@ _Source of truth for current project state. Generated from repository contents a
 
 ## Current Project Goal
 
-Kapıda Ödeme is a hybrid payment platform connecting merchants and delivery employees, supporting QR (real Bank QR / TR Karekod), NFC, Payment Link, and Cash payment methods, including hybrid/partial payment flows across multiple transactions per order.
+Kapıda Ödeme is a hybrid payment platform connecting merchants and delivery employees. Payment is accepted at the door on a POS device via QR (real Bank QR / TR Karekod), NFC, or Cash (ADR-013), including hybrid/partial payment flows across multiple transactions per order.
 
 The backend is built to remain provider-independent, platform-independent, API-first, and modular (see Locked Architecture in `CLAUDE.md`).
 
@@ -16,7 +16,6 @@ The backend is built to remain provider-independent, platform-independent, API-f
   - `modules/payment` — PaymentRequest domain, payment engine orchestration, state machine
   - `modules/payment-provider` — provider abstraction (`PaymentProvider` interface), ParamPOS adapter, credential vault/encryption
   - `modules/transaction` — Transaction engine (append-only ledger)
-  - `modules/notification` — empty module scaffold, no implementation yet
   - `modules/health` — platform health check
   - `database/` — TypeORM data source, migrations, decimal transformer
 - **Flutter app** (`flutter/`): no tracked files in the repository (skeleton not yet committed).
@@ -60,7 +59,7 @@ Not yet determined — development is paused pending user review of `PROJECT_STA
 | ADR-001 | PaymentRequest ↔ Transaction | Merchant 1→N PaymentRequest; PaymentRequest 1→N Transaction. |
 | ADR-002 | Hybrid / Partial Payments | `remainingAmount` is never stored; always derived from `totalAmount - sum(Transaction.amount)`. |
 | ADR-003 | QR Semantics | QR always means a real Bank QR (TR Karekod / EMV QR); never generated from a Payment Link. |
-| ADR-004 | Payment Method / Delivery Channel | PaymentMethod: QR, PAYMENT_LINK, NFC, CASH. DeliveryChannel: NONE, SMS, WHATSAPP, COPY_LINK. SMS/WhatsApp are delivery only, not payment methods. |
+| ADR-004 | Payment Method / Delivery Channel | **Superseded by ADR-013.** |
 | ADR-005 | Single Payment Endpoint | `POST /payments` only; `merchantId`/`employeeId` always derived from JWT, never from client input. |
 | ADR-006 | Customer Secure Mode | Mandatory secure UI mode for customer authentication (e.g. NFC PIN): hides employee/merchant/order info, randomized keypad, auto-return to Employee Mode. |
 | ADR-007 | Payment Orchestration Architecture | Business logic never references a specific provider; all providers implement the `PaymentProvider` interface; new providers require only an adapter + registration. |
@@ -68,8 +67,10 @@ Not yet determined — development is paused pending user review of `PROJECT_STA
 | ADR-010 | Reuse Before Create | Search and reuse/refactor existing services before creating new ones; no parallel orchestration paths. |
 | ADR-011 | Payment Lifecycle Ownership | Only `PaymentStateMachineService` may mutate `PaymentRequest.status`; all transitions after creation go through `applyTransition()`. |
 | ADR-012 | Financial History Immutability | Transactions are append-only and immutable; `paidAmount` only advances via new Transactions; lifecycle transitions (including cancellation) may change `status` only, never financial data; refunds must be new ledger entries, never rewrites. |
+| ADR-013 | POS-Only Payment Acceptance | PaymentMethod: QR, NFC, CASH. Payment Links and the whole DeliveryChannel concept are removed. QR is the only method that dispatches to a provider at creation time. Pre-ADR-013 rows keep their recorded values. |
+| ADR-014 | Open Provider Registry | A provider is a free-form string id, never an enum; `ProviderRegistry` is the source of truth for what is installed; adding a provider needs no enum edit and no migration. |
 
-(ADR-006 through ADR-012 confirmed present in `docs/adr/`; ADR-008 is not present in the repository.)
+(ADR-006 through ADR-014 confirmed present in `docs/adr/`; ADR-008 is not present in the repository.)
 
 ## What Is Considered Production-Ready
 

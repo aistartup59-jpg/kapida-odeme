@@ -37,10 +37,10 @@ describe('Payment - Create', () => {
       remainingAmount: 100,
       currency: 'TRY',
       paymentMethod: 'CASH',
-      deliveryChannel: 'NONE',
       status: 'PENDING',
     });
     expect(response.body.qrData).toBeUndefined();
+    expect(response.body.deliveryChannel).toBeUndefined();
   });
 
   it('creates an NFC payment request with no provider involved', async () => {
@@ -82,7 +82,7 @@ describe('Payment - Create', () => {
     expect(response.status).toBe(400);
   });
 
-  it('applies default currency (TRY) and deliveryChannel (NONE) when omitted', async () => {
+  it('applies the default currency (TRY) when omitted', async () => {
     const { accessToken } = await registerAndLoginMerchant(app);
 
     const response = await request(app.getHttpServer())
@@ -91,18 +91,16 @@ describe('Payment - Create', () => {
       .send({ totalAmount: 75, paymentMethod: 'CASH' });
 
     expect(response.body.currency).toBe('TRY');
-    expect(response.body.deliveryChannel).toBe('NONE');
   });
 
-  it('accepts an explicit currency and deliveryChannel', async () => {
+  it('accepts an explicit currency', async () => {
     const { accessToken } = await registerAndLoginMerchant(app);
 
     const response = await request(app.getHttpServer())
       .post('/api/payments')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ totalAmount: 75, paymentMethod: 'CASH', currency: 'USD', deliveryChannel: 'SMS' });
+      .send({ totalAmount: 75, paymentMethod: 'CASH', currency: 'USD' });
 
     expect(response.body.currency).toBe('USD');
-    expect(response.body.deliveryChannel).toBe('SMS');
   });
 });

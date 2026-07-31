@@ -1,6 +1,6 @@
 # Project Overview
 
-Kapıda Ödeme is a merchant-focused payment platform designed to support secure, modern payment experiences through QR, NFC, links, and cash-based flows. The product is organized around merchants, employees, payment requests, and transactions, with a long-term emphasis on maintainability and scalable architecture.
+Kapıda Ödeme is a merchant-focused payment platform for taking payment at the door, on a POS device carried by a delivery employee: a real bank QR, an NFC card read, or cash (ADR-013). The product is organized around merchants, employees, payment requests, and transactions, with a long-term emphasis on maintainability and scalable architecture.
 
 ## Documentation structure
 

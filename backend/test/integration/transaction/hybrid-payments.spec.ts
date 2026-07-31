@@ -5,13 +5,12 @@ import { registerAndLoginMerchant } from '../../utils/auth-flow.util';
 import { createCashPayment, recordTransaction } from '../../utils/payment-flow.util';
 
 // One PaymentRequest may be completed by multiple Transactions of different PaymentMethods
-// (ADR-001, CLAUDE.md's Hybrid Payments examples: QR + Cash, NFC + Cash, QR + NFC, Cash +
-// Payment Link). recordTransaction never dispatches to a provider, so every combination
-// below is testable today even though the QR/PAYMENT_LINK *creation-time* provider
-// dispatch itself is still an unimplemented ParamPOS stub (see Phase 3 notes) — the
-// PaymentRequest here is created as CASH purely as a provider-free vehicle; what's under
-// test is that a single PaymentRequest correctly accumulates Transactions of differing
-// PaymentMethods.
+// (ADR-001/ADR-002, CLAUDE.md's Hybrid Payments examples: QR + Cash, NFC + Cash, QR + NFC).
+// recordTransaction never dispatches to a provider, so every combination below is testable
+// today even though the QR *creation-time* provider dispatch itself is still an
+// unimplemented ParamPOS stub (see Phase 3 notes) — the PaymentRequest here is created as
+// CASH purely as a provider-free vehicle; what's under test is that a single PaymentRequest
+// correctly accumulates Transactions of differing PaymentMethods.
 describe('Transaction - Hybrid Payments', () => {
   let app: INestApplication;
 
@@ -31,7 +30,6 @@ describe('Transaction - Hybrid Payments', () => {
     ['QR', 'CASH'],
     ['NFC', 'CASH'],
     ['QR', 'NFC'],
-    ['CASH', 'PAYMENT_LINK'],
   ])('completes a payment with %s + %s', async (methodA, methodB) => {
     const { accessToken } = await registerAndLoginMerchant(app);
     const created = await createCashPayment(app, accessToken, 100);

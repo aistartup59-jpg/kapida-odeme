@@ -40,36 +40,22 @@ describe('Provider - Dispatch', () => {
     expect(response.body.qrExpiresAt).toEqual(expect.any(String));
   });
 
-  it('dispatches a successful PAYMENT_LINK payment and returns the link URL', async () => {
-    // Regression for the same class of bug fixed for QR in 92dc4bb: the provider's
-    // createPaymentLink() result was being silently discarded (payment-engine.service.ts
-    // only returned { success: true }), so a completed Payment Link could never actually
-    // reach the merchant/employee app to deliver via SMS/WhatsApp/Copy Link.
-    installMockProvider(app);
+  // QR is the only method that reaches the provider at creation time (ADR-013): CASH never
+  // involves one, and an NFC card is read by the POS device and reported afterwards as a
+  // Transaction, so neither may carry a provider-issued QR payload back to the caller.
+  it.each(['CASH', 'NFC'])('does not dispatch to the provider or return qrData for %s', async (paymentMethod) => {
+    const mock = installMockProvider(app);
+    const generateBankQR = jest.spyOn(mock, 'generateBankQRImpl');
     const { accessToken } = await registerAndLoginMerchant(app);
     await registerAndActivateProvider(app, accessToken, { providerType: 'PARAM_POS' });
 
     const response = await request(app.getHttpServer())
       .post('/api/payments')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ totalAmount: 100, paymentMethod: 'PAYMENT_LINK' });
+      .send({ totalAmount: 100, paymentMethod });
 
     expect(response.status).toBe(201);
-    expect(response.body.status).toBe('PENDING');
-    expect(response.body.linkUrl).toBe('https://pay.example.test/mock-link');
-    expect(response.body.linkExpiresAt).toEqual(expect.any(String));
-  });
-
-  it('does not leak qrData/linkUrl on a CASH payment', async () => {
-    installMockProvider(app);
-    const { accessToken } = await registerAndLoginMerchant(app);
-
-    const response = await request(app.getHttpServer())
-      .post('/api/payments')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .send({ totalAmount: 100, paymentMethod: 'CASH' });
-
     expect(response.body.qrData).toBeUndefined();
-    expect(response.body.linkUrl).toBeUndefined();
+    expect(generateBankQR).not.toHaveBeenCalled();
   });
 });

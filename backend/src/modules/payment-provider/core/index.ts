@@ -3,3 +3,4 @@ export * from './provider-config.model';
 export * from './provider-context.model';
 export * from './provider-credentials.model';
 export * from './provider-error.model';
+export * from './provider-id.model';

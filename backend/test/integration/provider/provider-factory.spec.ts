@@ -3,9 +3,13 @@ import { INestApplication, NotFoundException } from '@nestjs/common';
 import { createTestApp, clearDatabase } from '../../helpers/test-app.helper';
 import { PaymentProviderFactory } from '../../../src/modules/payment-provider/factory/payment-provider.factory';
 import { ProviderRegistry } from '../../../src/modules/payment-provider/registry/provider.registry';
-import { ProviderType } from '../../../src/modules/payment-provider/enums/provider-type.enum';
-import { ParamPosAdapter } from '../../../src/modules/payment-provider/adapters/parampos/parampos.adapter';
+import { PaymentProvider } from '../../../src/modules/payment-provider/interfaces/payment-provider.interface';
+import {
+  PARAM_POS_PROVIDER_ID,
+  ParamPosAdapter,
+} from '../../../src/modules/payment-provider/adapters/parampos/parampos.adapter';
 
+// The registry — not an enum — is the vocabulary of installed providers (ADR-014).
 describe('Provider - Factory & Registry', () => {
   let app: INestApplication;
   let factory: PaymentProviderFactory;
@@ -26,18 +30,35 @@ describe('Provider - Factory & Registry', () => {
   });
 
   it('self-registers ParamPosAdapter for PARAM_POS on module init', () => {
-    expect(registry.has(ProviderType.PARAM_POS)).toBe(true);
-    expect(factory.getProvider(ProviderType.PARAM_POS)).toBeInstanceOf(ParamPosAdapter);
+    expect(registry.has(PARAM_POS_PROVIDER_ID)).toBe(true);
+    expect(factory.getProvider(PARAM_POS_PROVIDER_ID)).toBeInstanceOf(ParamPosAdapter);
+    expect(registry.list()).toContain(PARAM_POS_PROVIDER_ID);
   });
 
-  it.each([ProviderType.IYZICO, ProviderType.PAY_TR, ProviderType.SIPAY])(
-    'has no adapter registered yet for %s (ADR-007: new providers need only an adapter + registration)',
-    (providerType) => {
-      expect(registry.has(providerType)).toBe(false);
-    },
-  );
+  it('resolves a provider id regardless of the casing and padding it arrives with', () => {
+    expect(registry.has('  param_pos  ')).toBe(true);
+    expect(factory.getProvider('param_pos')).toBeInstanceOf(ParamPosAdapter);
+  });
 
-  it('throws NotFoundException when resolving an unregistered provider type', () => {
-    expect(() => factory.getProvider(ProviderType.IYZICO)).toThrow(NotFoundException);
+  it.each(['IYZICO', 'PAY_TR', 'SIPAY'])('has no adapter installed for %s', (providerId) => {
+    expect(registry.has(providerId)).toBe(false);
+    expect(registry.list()).not.toContain(providerId);
+  });
+
+  it('throws NotFoundException when resolving a provider that was never registered', () => {
+    expect(() => factory.getProvider('IYZICO')).toThrow(NotFoundException);
+  });
+
+  // ADR-014: onboarding a provider is one adapter plus its registration — no enum edit and
+  // no migration. Registering one at runtime here stands in for dropping in a new adapter.
+  it('accepts a brand new provider id the moment an adapter registers itself', () => {
+    const newcomer = {} as PaymentProvider;
+
+    expect(registry.has('SOME_BANK_GATEWAY')).toBe(false);
+
+    registry.register('SOME_BANK_GATEWAY', newcomer);
+
+    expect(registry.has('SOME_BANK_GATEWAY')).toBe(true);
+    expect(factory.getProvider('SOME_BANK_GATEWAY')).toBe(newcomer);
   });
 });

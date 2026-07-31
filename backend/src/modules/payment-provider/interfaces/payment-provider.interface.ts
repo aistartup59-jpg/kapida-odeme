@@ -23,18 +23,6 @@ export interface GenerateBankQrResponse extends ProviderResponse {
   expiresAt?: Date;
 }
 
-export interface CreatePaymentLinkRequest extends ProviderRequest {
-  reference: string;
-  amount: number;
-  currency: string;
-  expiresAt?: Date;
-}
-
-export interface CreatePaymentLinkResponse extends ProviderResponse {
-  url: string;
-  expiresAt?: Date;
-}
-
 export interface CancelPaymentRequest extends ProviderRequest {
   providerReference: string;
 }
@@ -73,10 +61,13 @@ export interface HandleWebhookResponse extends ProviderResponse {
   paidAmount?: number;
 }
 
+// Every provider — iyzico, PayTR, ParamPOS, or a bank's own gateway — is reached only
+// through this interface (ADR-007). generateBankQR is the single provider capability the
+// POS payment flow dispatches to today: NFC is captured by the device itself and CASH
+// never involves a provider, so both are reported back as Transactions instead (ADR-013).
 export interface PaymentProvider {
   createPayment(request: CreatePaymentRequest): Promise<CreatePaymentResponse>;
   generateBankQR(request: GenerateBankQrRequest): Promise<GenerateBankQrResponse>;
-  createPaymentLink(request: CreatePaymentLinkRequest): Promise<CreatePaymentLinkResponse>;
   cancelPayment(request: CancelPaymentRequest): Promise<CancelPaymentResponse>;
   refundPayment(request: RefundPaymentRequest): Promise<RefundPaymentResponse>;
   getPaymentStatus(request: GetPaymentStatusRequest): Promise<GetPaymentStatusResponse>;

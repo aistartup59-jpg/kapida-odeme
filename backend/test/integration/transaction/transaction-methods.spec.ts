@@ -5,10 +5,10 @@ import { registerAndLoginMerchant } from '../../utils/auth-flow.util';
 import { createCashPayment, recordTransaction } from '../../utils/payment-flow.util';
 
 // recordTransaction never dispatches to a provider (that only happens at PaymentRequest
-// creation time for QR/PAYMENT_LINK, per payment-engine.service.ts's
-// requiresProviderExecution) — it purely books a reported payment event against a
-// PaymentRequest. Any of the four PaymentMethod values can be recorded here regardless of
-// which provider is (or isn't) configured, which is what makes Hybrid Payments possible.
+// creation time for QR, per payment-engine.service.ts's requiresProviderExecution) — it
+// purely books a reported payment event against a PaymentRequest. Any PaymentMethod value
+// can be recorded here regardless of which provider is (or isn't) configured, which is what
+// makes Hybrid Payments possible.
 describe('Transaction - Payment Methods', () => {
   let app: INestApplication;
 
@@ -24,7 +24,7 @@ describe('Transaction - Payment Methods', () => {
     await app.close();
   });
 
-  it.each(['CASH', 'NFC', 'QR', 'PAYMENT_LINK'])('records a %s transaction', async (paymentMethod) => {
+  it.each(['CASH', 'NFC', 'QR'])('records a %s transaction', async (paymentMethod) => {
     const { accessToken } = await registerAndLoginMerchant(app);
     const created = await createCashPayment(app, accessToken, 100);
 
@@ -34,6 +34,17 @@ describe('Transaction - Payment Methods', () => {
     expect(response.body.transactions).toHaveLength(1);
     expect(response.body.transactions[0].paymentMethod).toBe(paymentMethod);
     expect(response.body.status).toBe('PAID');
+  });
+
+  // Transactions already recorded as PAYMENT_LINK before ADR-013 stay exactly as they were
+  // (ADR-012), but no new one may be booked against the retired method.
+  it('rejects the retired PAYMENT_LINK transaction paymentMethod', async () => {
+    const { accessToken } = await registerAndLoginMerchant(app);
+    const created = await createCashPayment(app, accessToken, 100);
+
+    const response = await recordTransaction(app, accessToken, created.id, 100, 'PAYMENT_LINK');
+
+    expect(response.status).toBe(400);
   });
 
   it('rejects an invalid transaction paymentMethod', async () => {

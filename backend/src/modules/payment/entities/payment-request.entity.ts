@@ -13,7 +13,6 @@ import { Employee } from '../../auth/entities/employee.entity';
 import { Transaction } from '../../transaction/entities/transaction.entity';
 import { decimalTransformer } from '../../../shared/decimal.transformer';
 import { Currency } from '../enums/currency.enum';
-import { DeliveryChannel } from '../enums/delivery-channel.enum';
 import { PaymentMethod } from '../enums/payment-method.enum';
 import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
 
@@ -45,11 +44,11 @@ export class PaymentRequest {
   @Column({ type: 'enum', enum: Currency, default: Currency.TRY })
   currency: Currency;
 
-  @Column({ type: 'enum', enum: PaymentMethod, default: PaymentMethod.QR })
+  // Text rather than a DB enum: rows created before ADR-013 still carry the retired
+  // PAYMENT_LINK value, and financial history is never rewritten (ADR-012). New writes are
+  // constrained to PaymentMethod by PaymentService, and by a CHECK constraint in the DB.
+  @Column({ type: 'varchar', default: PaymentMethod.QR })
   paymentMethod: PaymentMethod;
-
-  @Column({ type: 'enum', enum: DeliveryChannel, default: DeliveryChannel.NONE })
-  deliveryChannel: DeliveryChannel;
 
   @Column({ type: 'enum', enum: PaymentLifecycleState, default: PaymentLifecycleState.PENDING })
   status: PaymentLifecycleState;

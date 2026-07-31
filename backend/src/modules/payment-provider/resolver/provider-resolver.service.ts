@@ -3,14 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { NoActiveProviderException } from '../common/exceptions/no-active-provider.exception';
+import { ProviderId } from '../core/provider-id.model';
 import { MerchantPaymentProvider } from '../entities/merchant-payment-provider.entity';
-import { ProviderType } from '../enums/provider-type.enum';
 import { PaymentProviderFactory } from '../factory/payment-provider.factory';
 import { PaymentProvider } from '../interfaces/payment-provider.interface';
 
 export interface ResolvedProvider {
   provider: PaymentProvider;
-  providerType: ProviderType;
+  providerType: ProviderId;
   credentialsReference: string;
 }
 

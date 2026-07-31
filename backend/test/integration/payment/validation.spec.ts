@@ -93,13 +93,26 @@ describe('Payment - Validation', () => {
     expect(response.status).toBe(400);
   });
 
-  it('rejects an invalid deliveryChannel', async () => {
+  // ADR-013 retired Payment Link and the whole DeliveryChannel concept. Historical rows keep
+  // their recorded values (ADR-012), but neither may be accepted on a new payment request.
+  it('rejects the retired PAYMENT_LINK payment method', async () => {
     const { accessToken } = await registerAndLoginMerchant(app);
 
     const response = await request(app.getHttpServer())
       .post('/api/payments')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ totalAmount: 100, paymentMethod: 'CASH', deliveryChannel: 'EMAIL' });
+      .send({ totalAmount: 100, paymentMethod: 'PAYMENT_LINK' });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('rejects the retired deliveryChannel field', async () => {
+    const { accessToken } = await registerAndLoginMerchant(app);
+
+    const response = await request(app.getHttpServer())
+      .post('/api/payments')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ totalAmount: 100, paymentMethod: 'CASH', deliveryChannel: 'SMS' });
 
     expect(response.status).toBe(400);
   });

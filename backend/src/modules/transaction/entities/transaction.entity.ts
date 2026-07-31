@@ -19,7 +19,10 @@ export class Transaction {
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0, transformer: decimalTransformer })
   amount: number;
 
-  @Column({ type: 'enum', enum: PaymentMethod, default: PaymentMethod.QR })
+  // Text rather than a DB enum, for the same reason as PaymentRequest.paymentMethod:
+  // Transactions are immutable (ADR-012), so pre-ADR-013 PAYMENT_LINK rows stay exactly as
+  // they were recorded instead of being rewritten to fit the reduced vocabulary.
+  @Column({ type: 'varchar', default: PaymentMethod.QR })
   paymentMethod: PaymentMethod;
 
   @Column({ type: 'enum', enum: PaymentLifecycleState, default: PaymentLifecycleState.PENDING })

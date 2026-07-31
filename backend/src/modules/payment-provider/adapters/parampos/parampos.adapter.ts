@@ -3,8 +3,6 @@ import { Injectable, NotImplementedException } from '@nestjs/common';
 import {
   CancelPaymentRequest,
   CancelPaymentResponse,
-  CreatePaymentLinkRequest,
-  CreatePaymentLinkResponse,
   CreatePaymentRequest,
   CreatePaymentResponse,
   GenerateBankQrRequest,
@@ -19,9 +17,12 @@ import {
 } from '../../interfaces/payment-provider.interface';
 import { ProviderAuthenticationException } from '../../common/exceptions/provider-authentication.exception';
 import { ProviderRegistry } from '../../registry/provider.registry';
-import { ProviderType } from '../../enums/provider-type.enum';
 import { CredentialVaultService } from '../../security/credential-vault.service';
 import { ParamPosClient } from './parampos.client';
+
+// The id this adapter registers itself under. It lives with the adapter rather than in a
+// shared enum (ADR-014) so that a new provider is added by dropping in a sibling directory.
+export const PARAM_POS_PROVIDER_ID = 'PARAM_POS';
 
 @Injectable()
 export class ParamPosAdapter implements PaymentProvider {
@@ -30,7 +31,7 @@ export class ParamPosAdapter implements PaymentProvider {
     private readonly client: ParamPosClient,
     private readonly credentialVault: CredentialVaultService,
   ) {
-    this.registry.register(ProviderType.PARAM_POS, this);
+    this.registry.register(PARAM_POS_PROVIDER_ID, this);
   }
 
   async createPayment(request: CreatePaymentRequest): Promise<CreatePaymentResponse> {
@@ -51,10 +52,6 @@ export class ParamPosAdapter implements PaymentProvider {
   }
 
   generateBankQR(_request: GenerateBankQrRequest): Promise<GenerateBankQrResponse> {
-    throw new NotImplementedException('Not implemented');
-  }
-
-  createPaymentLink(_request: CreatePaymentLinkRequest): Promise<CreatePaymentLinkResponse> {
     throw new NotImplementedException('Not implemented');
   }
 

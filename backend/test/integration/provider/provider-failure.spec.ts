@@ -50,7 +50,7 @@ describe('Provider - Failure', () => {
 
   it('marks the payment request FAILED when the provider throws a generic error (not a ProviderException)', async () => {
     const mock = installMockProvider(app);
-    mock.createPaymentLinkImpl = async () => {
+    mock.generateBankQRImpl = async () => {
       throw new Error('Unexpected network timeout.');
     };
 
@@ -60,7 +60,7 @@ describe('Provider - Failure', () => {
     const response = await request(app.getHttpServer())
       .post('/api/payments')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ totalAmount: 100, paymentMethod: 'PAYMENT_LINK' });
+      .send({ totalAmount: 100, paymentMethod: 'QR' });
 
     expect(response.status).toBe(400);
 

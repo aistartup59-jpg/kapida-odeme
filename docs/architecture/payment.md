@@ -44,19 +44,16 @@ Kapıda Ödeme supports a merchant-centric payment model built around payment re
   4. Payment succeeds.
   5. The PaymentRequest is updated.
 
-### ADR-004: Payment Method vs Delivery Channel
+### ADR-013: POS-Only Payment Acceptance (supersedes ADR-004)
 
+- Payment is accepted on the POS device only.
 - PaymentMethod values:
-  - QR
-  - PAYMENT_LINK
-  - NFC
-  - CASH
-- DeliveryChannel values:
-  - NONE
-  - SMS
-  - WHATSAPP
-  - COPY_LINK
-- SMS and WhatsApp are delivery channels only and are not payment methods.
+  - QR — a real Bank QR displayed on the device
+  - NFC — a card read by the device (Android only)
+  - CASH — cash handed to the employee at the door
+- Payment Links are removed. DeliveryChannel is removed entirely — with no URL to deliver, SMS, WhatsApp and Copy Link have nothing to carry.
+- QR is the only method that reaches the provider at PaymentRequest creation time. NFC is captured by the device and CASH involves no provider; both are reported afterwards as Transactions.
+- Rows recorded before this decision keep their values exactly as recorded (ADR-012): `paymentMethod` still permits the retired PAYMENT_LINK value for existing rows, and `deliveryChannel` was renamed to `legacyDeliveryChannel` rather than dropped.
 
 ## Domain expectations
 
@@ -114,11 +111,12 @@ A provider implementation is responsible for:
 
 - `createPayment`
 - `generateBankQR`
-- `createPaymentLink`
 - `cancelPayment`
 - `refundPayment`
 - `getPaymentStatus`
 - `handleWebhook`
+
+`generateBankQR` is the only capability the payment flow dispatches to today (ADR-013).
 
 #### Extensibility
 
@@ -128,6 +126,14 @@ Adding a new provider must require:
 - provider registration
 
 No business logic changes.
+
+### ADR-014: Open Provider Registry
+
+- A provider is identified by a free-form string id, never an enum.
+- `ProviderRegistry` is the single source of truth for which providers are installed. An adapter registers itself under its own id, declared alongside the adapter.
+- Merchant configuration validates `providerType` against the registry, so a provider with no installed adapter is rejected at configuration time rather than at payment time.
+- `merchant_payment_providers.providerType` is a text column: installing a provider never requires a schema migration.
+- Provider ids are normalized (trimmed, upper-cased) before being matched or persisted.
 
 ## Current implementation status
 

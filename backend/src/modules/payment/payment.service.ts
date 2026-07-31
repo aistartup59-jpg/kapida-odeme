@@ -11,7 +11,6 @@ import { CreateTransactionRequestDto } from './dto/create-transaction-request.dt
 import { ListPaymentRequestsQueryDto } from './dto/list-payment-requests-query.dto';
 import { PaymentRequestResponseDto } from './dto/payment-request-response.dto';
 import { Currency } from './enums/currency.enum';
-import { DeliveryChannel } from './enums/delivery-channel.enum';
 import { PaymentLifecycleState } from './enums/payment-lifecycle-state.enum';
 import { PaymentMethod } from './enums/payment-method.enum';
 
@@ -52,7 +51,6 @@ export class PaymentService {
       totalAmount: payload.totalAmount,
       currency: this.normalizeCurrency(payload.currency),
       paymentMethod: this.normalizePaymentMethod(payload.paymentMethod),
-      deliveryChannel: this.normalizeDeliveryChannel(payload.deliveryChannel),
       description: payload.description?.trim() || undefined,
       expiresAt: this.normalizeExpiresAt(payload.expiresAt),
     });
@@ -66,11 +64,6 @@ export class PaymentService {
     if (result.qrData) {
       response.qrData = result.qrData;
       response.qrExpiresAt = result.qrExpiresAt;
-    }
-
-    if (result.linkUrl) {
-      response.linkUrl = result.linkUrl;
-      response.linkExpiresAt = result.linkExpiresAt;
     }
 
     return response;
@@ -222,7 +215,6 @@ export class PaymentService {
       remainingAmount: remainingAmountResult.data,
       currency: paymentRequest.currency,
       paymentMethod: paymentRequest.paymentMethod,
-      deliveryChannel: paymentRequest.deliveryChannel,
       status: paymentRequest.status,
       description: paymentRequest.description,
       expiresAt: paymentRequest.expiresAt,
@@ -301,19 +293,6 @@ export class PaymentService {
     }
 
     return normalized as PaymentMethod;
-  }
-
-  private normalizeDeliveryChannel(value?: string): DeliveryChannel {
-    if (!value) {
-      return DeliveryChannel.NONE;
-    }
-
-    const normalized = value.toUpperCase();
-    if (!Object.values(DeliveryChannel).includes(normalized as DeliveryChannel)) {
-      throw new BadRequestException(`Invalid deliveryChannel: ${value}.`);
-    }
-
-    return normalized as DeliveryChannel;
   }
 
   private normalizeExpiresAt(value?: Date | string): Date {

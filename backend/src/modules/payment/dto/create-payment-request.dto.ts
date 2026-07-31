@@ -15,10 +15,6 @@ export class CreatePaymentRequestDto {
 
   @IsOptional()
   @IsString()
-  deliveryChannel?: string;
-
-  @IsOptional()
-  @IsString()
   description?: string;
 
   @IsOptional()

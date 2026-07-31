@@ -34,23 +34,25 @@ QR always means a real Bank QR (TR Karekod / EMV QR).
 
 Never generate QR from Payment Link.
 
-ADR-004
+ADR-013 (supersedes ADR-004)
+
+Payment is accepted on the POS device only.
 
 PaymentMethod
 
 - QR
-- PAYMENT_LINK
 - NFC
 - CASH
 
-DeliveryChannel
+There is no PAYMENT_LINK and no DeliveryChannel.
 
-- NONE
-- SMS
-- WHATSAPP
-- COPY_LINK
+Payment Links, SMS, WhatsApp and Copy Link are removed from the product.
 
-SMS and WhatsApp are not payment methods.
+ADR-014
+
+A payment provider is identified by a free-form string id, never an enum.
+
+ProviderRegistry is the single source of truth for which providers are installed.
 
 ADR-005
 
@@ -154,9 +156,9 @@ Do not implement QR using Payment Links.
 
 ## Payment Link
 
-Payment Links are independent from QR.
+Payment Links are removed from the product (ADR-013).
 
-SMS and WhatsApp only deliver the Payment Link.
+Never reintroduce Payment Links, SMS, WhatsApp or Copy Link delivery.
 
 ## NFC
 
@@ -173,8 +175,7 @@ Examples:
 - QR + Cash
 - NFC + Cash
 - QR + NFC
-- QR + Payment Link
-- Cash + Payment Link
+- QR + NFC + Cash
 
 ## Remaining Amount
 
@@ -225,7 +226,7 @@ Examples:
 - QR + Cash
 - NFC + Cash
 - QR + NFC
-- Payment Link + Cash
+- QR + NFC + Cash
 
 ## Customer Secure Mode
 
@@ -278,6 +279,10 @@ Adding a new payment provider must require only:
 - provider registration
 
 No business logic changes are allowed.
+
+Adding a provider must not require an enum edit or a schema migration.
+
+An adapter declares its own provider id and registers itself with ProviderRegistry (ADR-014).
 
 # Payment Lifecycle Ownership
 

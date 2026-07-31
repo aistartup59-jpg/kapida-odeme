@@ -47,10 +47,6 @@ describe('Provider - ParamPOS Adapter (unimplemented stub, documents current beh
   // being typed to return a Promise, so the assertion must be synchronous too.
   it.each([
     ['generateBankQR', () => adapter.generateBankQR({ reference: 'r', amount: 1, currency: 'TRY', credentials: {} })],
-    [
-      'createPaymentLink',
-      () => adapter.createPaymentLink({ reference: 'r', amount: 1, currency: 'TRY', credentials: {} }),
-    ],
     ['cancelPayment', () => adapter.cancelPayment({ providerReference: 'r', credentials: {} })],
     ['refundPayment', () => adapter.refundPayment({ providerReference: 'r', amount: 1, credentials: {} })],
     ['getPaymentStatus', () => adapter.getPaymentStatus({ providerReference: 'r', credentials: {} })],

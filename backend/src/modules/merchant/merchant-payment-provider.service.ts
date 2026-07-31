@@ -5,8 +5,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Merchant } from '../auth/entities/merchant.entity';
+import { normalizeProviderId, ProviderId } from '../payment-provider/core/provider-id.model';
 import { MerchantPaymentProvider } from '../payment-provider/entities/merchant-payment-provider.entity';
-import { ProviderType } from '../payment-provider/enums/provider-type.enum';
+import { ProviderRegistry } from '../payment-provider/registry/provider.registry';
 import { CredentialVaultService } from '../payment-provider/security/credential-vault.service';
 import { CreateMerchantPaymentProviderDto } from './dto/create-merchant-payment-provider.dto';
 import { MerchantPaymentProviderResponseDto } from './dto/merchant-payment-provider-response.dto';
@@ -25,6 +26,7 @@ export class MerchantPaymentProviderService {
     private readonly merchantRepository: Repository<Merchant>,
     private readonly providerRepository: MerchantPaymentProviderRepository,
     private readonly credentialVault: CredentialVaultService,
+    private readonly providerRegistry: ProviderRegistry,
   ) {}
 
   async register(
@@ -138,11 +140,19 @@ export class MerchantPaymentProviderService {
     return merchant.id;
   }
 
-  private validateProviderType(value?: string): ProviderType {
-    if (!value || !Object.values(ProviderType).includes(value as ProviderType)) {
-      throw new BadRequestException('A valid providerType is required.');
+  // The accepted vocabulary is whatever the registry currently holds (ADR-014), so an
+  // adapter that self-registers is immediately configurable by merchants and one that was
+  // never installed is rejected here instead of failing later at dispatch time.
+  private validateProviderType(value?: string): ProviderId {
+    const providerId = value ? normalizeProviderId(value) : '';
+
+    if (!providerId || !this.providerRegistry.has(providerId)) {
+      throw new BadRequestException(
+        `A valid providerType is required. Registered providers: ${this.providerRegistry.list().join(', ')}.`,
+      );
     }
-    return value as ProviderType;
+
+    return providerId;
   }
 
   private validateCredentials(credentials?: Record<string, string>): void {

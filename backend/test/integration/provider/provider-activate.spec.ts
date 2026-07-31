@@ -4,12 +4,17 @@ import * as request from 'supertest';
 import { createTestApp, clearDatabase } from '../../helpers/test-app.helper';
 import { registerAndLoginMerchant } from '../../utils/auth-flow.util';
 import { registerProvider } from '../../utils/provider-flow.util';
+import { installMockProvider } from '../../utils/mock-provider.util';
 
 describe('Merchant Provider - Activate', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
     app = await createTestApp();
+    // Only PARAM_POS ships an adapter today, and a merchant may only configure a provider
+    // the registry actually holds (ADR-014). Installing a second adapter here is what makes
+    // two *different* provider types configurable for the switching test below.
+    installMockProvider(app, 'IYZICO');
   });
 
   afterEach(async () => {

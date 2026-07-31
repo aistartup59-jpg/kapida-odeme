@@ -3,12 +3,16 @@ import * as request from 'supertest';
 
 import { createTestApp, clearDatabase } from '../../helpers/test-app.helper';
 import { registerAndLoginMerchant } from '../../utils/auth-flow.util';
+import { installMockProvider } from '../../utils/mock-provider.util';
 
 describe('Merchant Provider - Create', () => {
   let app: INestApplication;
 
   beforeAll(async () => {
     app = await createTestApp();
+    // A merchant may only configure a provider the registry actually holds (ADR-014), so
+    // the ownership-isolation test below needs a second installed adapter to point at.
+    installMockProvider(app, 'IYZICO');
   });
 
   afterEach(async () => {
@@ -51,6 +55,18 @@ describe('Merchant Provider - Create', () => {
       .send({ providerType: 'NOT_A_REAL_PROVIDER', credentials: { apiKey: 'key' } });
 
     expect(response.status).toBe(400);
+  });
+
+  it('normalizes the providerType it stores so casing and padding cannot fork a merchant\'s configuration', async () => {
+    const { accessToken } = await registerAndLoginMerchant(app);
+
+    const response = await request(app.getHttpServer())
+      .post('/api/merchant/payment-providers')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ providerType: '  param_pos  ', credentials: { apiKey: 'key' } });
+
+    expect(response.status).toBe(201);
+    expect(response.body.providerType).toBe('PARAM_POS');
   });
 
   it('rejects empty credentials', async () => {
