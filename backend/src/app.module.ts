@@ -11,6 +11,7 @@ import { MerchantModule } from './modules/merchant/merchant.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { TransactionModule } from './modules/transaction/transaction.module';
 import { PaymentProviderModule } from './modules/payment-provider/payment-provider.module';
+import { PartnerModule } from './modules/partner/partner.module';
 import { HealthModule } from './modules/health/health.module';
 
 @Module({
@@ -23,6 +24,7 @@ import { HealthModule } from './modules/health/health.module';
     PaymentModule,
     TransactionModule,
     PaymentProviderModule,
+    PartnerModule,
     HealthModule,
   ],
   controllers: [],

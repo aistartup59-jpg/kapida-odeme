@@ -36,6 +36,16 @@ export class PaymentController {
     return this.paymentService.getPaymentRequestById(paymentRequestId, user);
   }
 
+  // Issues a bank QR for whatever is still owed on an existing request (ADR-003), which is
+  // what the courier shows the customer at the door.
+  @Post(':paymentRequestId/qr')
+  generateQr(
+    @Param('paymentRequestId', ParseUUIDPipe) paymentRequestId: string,
+    @CurrentUser() user: { sub?: string; type?: string },
+  ) {
+    return this.paymentService.generateQr(paymentRequestId, user);
+  }
+
   @Post(':paymentRequestId/transactions')
   recordTransaction(
     @Param('paymentRequestId', ParseUUIDPipe) paymentRequestId: string,

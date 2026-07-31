@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -16,6 +17,13 @@ import { Currency } from '../enums/currency.enum';
 import { PaymentMethod } from '../enums/payment-method.enum';
 import { PaymentLifecycleState } from '../enums/payment-lifecycle-state.enum';
 
+// Unique per merchant and only where an order id is actually present, so ordinary in-app
+// payments (which carry none) are unaffected while a repeated hand-off for the same platform
+// order can never open a second PaymentRequest.
+@Index('UQ_payment_requests_merchant_external_order', ['merchantId', 'externalOrderId'], {
+  unique: true,
+  where: '"externalOrderId" IS NOT NULL',
+})
 @Entity({ name: 'payment_requests' })
 export class PaymentRequest {
   @PrimaryGeneratedColumn('uuid')
@@ -52,6 +60,12 @@ export class PaymentRequest {
 
   @Column({ type: 'enum', enum: PaymentLifecycleState, default: PaymentLifecycleState.PENDING })
   status: PaymentLifecycleState;
+
+  // The order platform's own order id, carried in by the hand-off deep link (ADR-015). It is
+  // unique per merchant, so a re-opened hand-off resolves to the same PaymentRequest instead
+  // of charging the customer twice.
+  @Column({ nullable: true })
+  externalOrderId?: string | null;
 
   @Column({ nullable: true })
   description?: string;

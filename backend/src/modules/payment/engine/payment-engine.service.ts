@@ -17,6 +17,7 @@ import {
   CreatePaymentEngineRequest,
   CreatePaymentEngineResult,
   GenerateQrEngineRequest,
+  GenerateQrEngineResult,
   GetPaymentStatusEngineRequest,
   PaymentEngine,
   ProcessNfcEngineRequest,
@@ -53,6 +54,7 @@ export class PaymentEngineService implements PaymentEngine {
       paidAmount: 0,
       currency: request.currency,
       paymentMethod: request.paymentMethod,
+      externalOrderId: request.externalOrderId ?? null,
       status: initialState,
       description: request.description,
       expiresAt: request.expiresAt,
@@ -154,8 +156,61 @@ export class PaymentEngineService implements PaymentEngine {
     }
   }
 
-  generateQr(_request: GenerateQrEngineRequest): Promise<PaymentEngineResult> {
-    throw new NotImplementedException('PaymentEngine.generateQr is not implemented yet.');
+  // Issues a bank QR against a PaymentRequest that already exists, for the remaining amount.
+  // Creation-time QR (createPayment) cannot serve the courier flow on its own: a request may
+  // be opened before the customer has chosen how to pay, and after a partial cash payment the
+  // QR must cover what is actually left rather than the original total.
+  //
+  // Unlike createPayment, a provider failure here does not move the PaymentRequest to FAILED.
+  // The request was not born for QR — the courier can still collect it in cash — so a failed
+  // QR attempt must leave the payment collectable.
+  async generateQr(request: GenerateQrEngineRequest): Promise<GenerateQrEngineResult> {
+    const paymentRequest = await this.paymentRequestRepository.findOne({
+      where: { id: request.paymentRequestId },
+    });
+
+    if (!paymentRequest) {
+      throw new NotFoundException(`PaymentRequest ${request.paymentRequestId} not found.`);
+    }
+
+    if (
+      paymentRequest.status !== PaymentLifecycleState.PENDING &&
+      paymentRequest.status !== PaymentLifecycleState.PARTIALLY_PAID
+    ) {
+      throw new BadRequestException(
+        `A bank QR can only be issued while a payment request is collectable (current status: ${paymentRequest.status}).`,
+      );
+    }
+
+    const remainingAmountResult = await this.transactionEngine.calculateRemainingAmount(paymentRequest.id);
+
+    if (!remainingAmountResult.success || remainingAmountResult.data === undefined) {
+      return { success: false, error: remainingAmountResult.error };
+    }
+
+    if (remainingAmountResult.data <= 0) {
+      throw new BadRequestException('Nothing is left to collect on this payment request.');
+    }
+
+    const resolvedProvider = await this.providerResolver.resolveActiveProvider(paymentRequest.merchantId);
+
+    const executionResult = await this.executeWithProvider(resolvedProvider.provider, PaymentMethod.QR, {
+      paymentRequestId: paymentRequest.id,
+      amount: remainingAmountResult.data,
+      currency: paymentRequest.currency,
+      credentialsReference: resolvedProvider.credentialsReference,
+    });
+
+    if (!executionResult.success) {
+      return { success: false, error: executionResult.error };
+    }
+
+    return {
+      success: true,
+      data: paymentRequest,
+      qrData: executionResult.qrData,
+      qrExpiresAt: executionResult.qrExpiresAt,
+    };
   }
 
   processNfc(_request: ProcessNfcEngineRequest): Promise<PaymentEngineResult> {

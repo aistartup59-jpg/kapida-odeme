@@ -13,13 +13,18 @@ export interface CreatePaymentEngineRequest {
   totalAmount: number;
   currency: Currency;
   paymentMethod: PaymentMethod;
+  externalOrderId?: string | null;
   description?: string;
   expiresAt?: Date;
 }
 
-export interface GenerateQrEngineRequest extends PaymentEngineRequest {
-  amount: number;
-  currency: string;
+// No amount is accepted: a bank QR issued against an existing PaymentRequest always covers
+// the remaining amount, which is derived rather than stored (ADR-002).
+export interface GenerateQrEngineRequest extends PaymentEngineRequest {}
+
+export interface GenerateQrEngineResult extends PaymentEngineResult<PaymentRequest> {
+  qrData?: string;
+  qrExpiresAt?: Date;
 }
 
 export interface ProcessNfcEngineRequest extends PaymentEngineRequest {
@@ -52,7 +57,7 @@ export interface CreatePaymentEngineResult extends PaymentEngineResult<PaymentRe
 
 export interface PaymentEngine {
   createPayment(request: CreatePaymentEngineRequest): Promise<CreatePaymentEngineResult>;
-  generateQr(request: GenerateQrEngineRequest): Promise<PaymentEngineResult>;
+  generateQr(request: GenerateQrEngineRequest): Promise<GenerateQrEngineResult>;
   processNfc(request: ProcessNfcEngineRequest): Promise<PaymentEngineResult>;
   cancelPayment(request: CancelPaymentEngineRequest): Promise<PaymentEngineResult<PaymentRequest>>;
   refundPayment(request: RefundPaymentEngineRequest): Promise<PaymentEngineResult>;

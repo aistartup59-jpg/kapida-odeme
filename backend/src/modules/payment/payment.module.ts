@@ -19,6 +19,6 @@ import { PaymentStateMachineService } from './state-machine/payment-state-machin
   ],
   controllers: [PaymentController],
   providers: [PaymentService, PaymentEngineService, PaymentStateMachineService],
-  exports: [PaymentEngineService, PaymentStateMachineService],
+  exports: [PaymentService, PaymentEngineService, PaymentStateMachineService],
 })
 export class PaymentModule {}

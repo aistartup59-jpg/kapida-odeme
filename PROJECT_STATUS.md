@@ -16,9 +16,10 @@ The backend is built to remain provider-independent, platform-independent, API-f
   - `modules/payment` — PaymentRequest domain, payment engine orchestration, state machine
   - `modules/payment-provider` — provider abstraction (`PaymentProvider` interface), ParamPOS adapter, credential vault/encryption
   - `modules/transaction` — Transaction engine (append-only ledger)
+  - `modules/partner` — order platform integration: merchant-issued API keys and the payment verification endpoint (ADR-015)
   - `modules/health` — platform health check
   - `database/` — TypeORM data source, migrations, decimal transformer
-- **Flutter app** (`flutter/`): no tracked files in the repository (skeleton not yet committed).
+- **Flutter app** (`mobile/`): Android-only POS app serving both audiences (ADR-015). A small business signs up or signs in and keys the amount in by hand; an order platform's courier arrives on a hand-off deep link with no account at all. Both then use the same collection screen: real Bank QR for the remaining amount, cash, multiple transactions per payment, and — for a hand-off — an automatic return to the platform's app once paid. NFC is present in the flow but inert until a certified SoftPOS SDK is integrated. `API_BASE_URL` is a `--dart-define` build argument, and release signing is read from the git-ignored `android/key.properties`.
 - **Website** (`website/`): Next.js project skeleton (16 tracked source files), unchanged since initial scaffold — no product-specific implementation yet.
 - **Orchestration call chain** (ADR-007): `PaymentService → PaymentEngine → PaymentProviderFactory → PaymentProvider interface → Provider Adapter → Provider API`.
 
@@ -69,6 +70,7 @@ Not yet determined — development is paused pending user review of `PROJECT_STA
 | ADR-012 | Financial History Immutability | Transactions are append-only and immutable; `paidAmount` only advances via new Transactions; lifecycle transitions (including cancellation) may change `status` only, never financial data; refunds must be new ledger entries, never rewrites. |
 | ADR-013 | POS-Only Payment Acceptance | PaymentMethod: QR, NFC, CASH. Payment Links and the whole DeliveryChannel concept are removed. QR is the only method that dispatches to a provider at creation time. Pre-ADR-013 rows keep their recorded values. |
 | ADR-014 | Open Provider Registry | A provider is a free-form string id, never an enum; `ProviderRegistry` is the source of truth for what is installed; adding a provider needs no enum edit and no migration. |
+| ADR-015 | Two Products, One App | Small businesses sign up and sign in; order platform couriers never sign in. The platform's backend mints a hand-off token with its API key, the deep link carries only that token, and the token is scoped to one PaymentRequest — no hand-off endpoint accepts a payment id. The platform confirms the result server side. |
 
 (ADR-006 through ADR-014 confirmed present in `docs/adr/`; ADR-008 is not present in the repository.)
 

@@ -13,6 +13,7 @@ export interface PaymentRequestResponseDto {
   currency: Currency;
   paymentMethod: PaymentMethod;
   status: PaymentLifecycleState;
+  externalOrderId?: string | null;
   description?: string;
   expiresAt?: Date;
   paidAt?: Date;
