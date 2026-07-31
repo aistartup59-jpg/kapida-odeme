@@ -1,5 +1,5 @@
 name: kapida_odeme_mobile
-description: Flutter merchant app skeleton for Kapıda Ödeme.
+description: Kapıda Ödeme POS app — bank QR, NFC and cash collection at the door.
 publish_to: none
 version: 0.1.0+1
 
@@ -13,12 +13,18 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.5
   flutter_riverpod: ^2.3.6
-  go_router: ^7.0.0
-  dio: ^6.1.0
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  flutter_dotenv: ^5.0.2
-  http: ^1.5.2
+  dio: ^5.11.0
+  # Renders the provider-issued TR Karekod / EMV payload. It never generates a payment QR of
+  # its own — that would be exactly the Payment Link QR ADR-003 forbids.
+  qr_flutter: ^4.1.0
+  # Pinned below 10.x: newer releases of both plugins build against a Flutter Gradle plugin
+  # API that Flutter 3.24.5 does not provide, and fail configuration with
+  # "unknown property 'flutter' for extension 'android'".
+  flutter_secure_storage: '>=9.2.2 <10.0.0'
+  # Receives the order platform's hand-off deep link (ADR-015).
+  app_links: '>=6.3.2 <6.4.0'
+  # Sends the courier back to the platform's app once the money is in.
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -27,5 +33,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/

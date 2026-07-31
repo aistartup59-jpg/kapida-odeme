@@ -1,0 +1,16 @@
+# Copy to key.properties and fill in with the real release keystore.
+#
+# Both this file and the keystore itself are git-ignored on purpose: whoever holds them can
+# publish updates as us, and losing them means an already-published app can never be updated
+# again. Keep a backup somewhere that is not this repository.
+#
+# Generate a keystore with:
+#   keytool -genkeypair -v -keystore upload-keystore.jks -storetype PKCS12 \
+#           -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# When key.properties is absent the build falls back to debug signing, so a checkout without
+# the release key still produces an installable APK for development.
+storePassword=
+keyPassword=
+keyAlias=upload
+storeFile=upload-keystore.jks

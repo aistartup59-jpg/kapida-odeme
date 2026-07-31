@@ -54,6 +54,22 @@ A payment provider is identified by a free-form string id, never an enum.
 
 ProviderRegistry is the single source of truth for which providers are installed.
 
+ADR-015
+
+One app, two products.
+
+Small businesses sign up and sign in, and key the amount in by hand.
+
+Order platform couriers never sign in.
+
+The platform's backend mints a hand-off token with its API key; the deep link carries only that token.
+
+The token is scoped to one PaymentRequest and expires. No hand-off endpoint accepts a payment id.
+
+Never accept an amount stated by the deep link, and never treat a deep link result as proof of payment.
+
+The platform confirms the result with its API key through GET /partner/payments.
+
 ADR-005
 
 Use a single endpoint:
@@ -119,6 +135,20 @@ API documentation belongs under docs/api.
 # Build
 
 Always run npm run build before finishing backend work.
+
+Always run flutter analyze and flutter test before finishing mobile work.
+
+The mobile app is Flutter, Android only. Toolchain on this machine:
+
+- Flutter SDK: C:\dev\flutter
+- Android SDK: C:\dev\android-sdk
+- JDK 17: C:\Program Files\Microsoft\jdk-17.0.20.8-hotspot
+
+Build the APK with:
+
+flutter build apk --release --dart-define=API_BASE_URL=<backend url>
+
+API_BASE_URL is a build-time define, not a bundled .env file.
 
 # Git
 

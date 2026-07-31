@@ -19,6 +19,12 @@ coverage/
 !.env.example
 !.env.test.example
 
+# Android release signing. Losing these means never being able to ship an update for an
+# already-published app, and committing them would let anyone publish as us.
+*.jks
+*.keystore
+mobile/android/key.properties
+
 # IDE and OS files
 .vscode/
 .idea/
