@@ -33,13 +33,32 @@ jobs:
         run: npm run lint
         working-directory: backend
 
+      # Covers src and test. `npm run build` deliberately excludes test/ so the compiled
+      # output keeps the entry point at dist/main.js, which means the build alone no longer
+      # type-checks the test suite.
+      - name: Typecheck backend
+        run: npm run typecheck
+        working-directory: backend
+
       - name: Build backend
         run: npm run build
         working-directory: backend
 
       - name: Build backend Docker image
-        run: docker build -t kapida-odeme-backend:ci .
+        run: docker build -t payals-backend:ci .
         working-directory: backend
+
+      # Building the image never proved it could start — a wrong CMD path shipped unnoticed
+      # because nothing ever ran the container. This starts it and requires it to fail on the
+      # missing database rather than on a missing entry point.
+      - name: Verify the backend image has a working entry point
+        run: |
+          output=$(docker run --rm -e JWT_SECRET=ci -e CREDENTIAL_ENCRYPTION_SECRET=ci \
+            payals-backend:ci 2>&1 || true)
+          echo "$output"
+          if echo "$output" | grep -q "Cannot find module"; then
+            echo "::error::The image entry point does not exist" && exit 1
+          fi
 
       - name: Install website dependencies
         run: npm install --no-audit --no-fund
