@@ -4,7 +4,7 @@ import { getRequiredDatabasePassword } from './database-password';
 
 type BaseConnectionOptions = Pick<
   PostgresConnectionOptions,
-  'type' | 'host' | 'port' | 'username' | 'password' | 'database'
+  'type' | 'host' | 'port' | 'username' | 'password' | 'database' | 'ssl'
 >;
 
 // Shared by the runtime TypeOrmModule (database.module.ts) and the CLI DataSource
@@ -17,5 +17,28 @@ export function getDatabaseConnectionOptions(): BaseConnectionOptions {
     username: process.env.DATABASE_USER || 'kapida',
     password: getRequiredDatabasePassword(),
     database: process.env.DATABASE_NAME || 'kapida_dev',
+    ...resolveSsl(),
   };
+}
+
+// Off by default, which is what a database reached over a private network wants — docker
+// compose here, and a managed host's internal address in a deployment. A database exposed
+// over the public internet needs it on, so this is a deliberate switch rather than something
+// guessed from the hostname.
+//
+// 'no-verify' additionally stops the certificate being checked. Some managed databases front
+// themselves with self-signed certificates and offer no alternative, but it gives up the
+// protection SSL was there to provide, so it has to be asked for by name.
+function resolveSsl(): Pick<BaseConnectionOptions, 'ssl'> {
+  const mode = process.env.DATABASE_SSL?.trim().toLowerCase();
+
+  if (mode === 'no-verify') {
+    return { ssl: { rejectUnauthorized: false } };
+  }
+
+  if (mode === 'true') {
+    return { ssl: { rejectUnauthorized: true } };
+  }
+
+  return {};
 }
