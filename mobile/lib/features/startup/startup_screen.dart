@@ -99,6 +99,11 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
 // Opens a hand-off collection with no sign-in: the token is the entire authorisation and it
 // reaches exactly one payment request. Shared by cold start and by links that arrive while the
 // app is already open.
+//
+// A warm hand-off replaces whatever is on screen rather than stacking on top of it. A courier
+// who has just finished one order and is handed the next must land on the new collection —
+// leaving them looking at the completed previous one, with the new order silently queued
+// behind it, is how a payment gets missed.
 Future<void> openHandoff(
   BuildContext context,
   PartnerHandoff handoff, {
@@ -120,7 +125,7 @@ Future<void> openHandoff(
     if (replace) {
       Navigator.of(context).pushReplacementNamed('/collect', arguments: arguments);
     } else {
-      Navigator.of(context).pushNamed('/collect', arguments: arguments);
+      Navigator.of(context).pushNamedAndRemoveUntil('/collect', (route) => route.isFirst, arguments: arguments);
     }
   } on ApiException catch (error) {
     onError?.call(

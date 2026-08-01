@@ -6,7 +6,6 @@ import '../../core/di.dart';
 import '../../data/collection_gateway.dart';
 import '../../data/payment_models.dart';
 import '../collect/collect_screen.dart';
-import '../startup/startup_screen.dart';
 
 // The small business side of the product: sign in, key the amount in, collect. Order platform
 // couriers never reach this screen — they arrive on a hand-off link and go straight to the
@@ -77,13 +76,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // A hand-off arriving while the app is already open jumps straight into that collection,
-    // even for a signed-in business user — the link is the courier's whole context.
-    ref.listen(incomingHandoffProvider, (_, next) {
-      final handoff = next.valueOrNull;
-      if (handoff != null) openHandoff(context, handoff);
-    });
-
+    // Incoming hand-offs are handled at the root of the app (see App), not here — a listener
+    // on one screen misses every link that arrives while the courier is on another.
     return Scaffold(
       appBar: AppBar(
         title: const Text('PayALS'),
