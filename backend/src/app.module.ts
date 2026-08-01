@@ -12,6 +12,7 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { TransactionModule } from './modules/transaction/transaction.module';
 import { PaymentProviderModule } from './modules/payment-provider/payment-provider.module';
 import { PartnerModule } from './modules/partner/partner.module';
+import { DemoModule } from './modules/demo/demo.module';
 import { HealthModule } from './modules/health/health.module';
 
 @Module({
@@ -25,6 +26,7 @@ import { HealthModule } from './modules/health/health.module';
     TransactionModule,
     PaymentProviderModule,
     PartnerModule,
+    DemoModule,
     HealthModule,
   ],
   controllers: [],

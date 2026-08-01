@@ -40,6 +40,15 @@ describe('Provider - Factory & Registry', () => {
     expect(factory.getProvider('param_pos')).toBeInstanceOf(ParamPosAdapter);
   });
 
+  // The demo provider settles payments nobody made. It must be absent unless an environment
+  // explicitly asked for it, and the test environment never does — so if this ever fails, a
+  // fake provider has become reachable somewhere it was not switched on.
+  it('does not install the demo provider unless DEMO_PAYMENT_PROVIDER is set', () => {
+    expect(process.env.DEMO_PAYMENT_PROVIDER).toBeUndefined();
+    expect(registry.has('DEMO')).toBe(false);
+    expect(() => factory.getProvider('DEMO')).toThrow(NotFoundException);
+  });
+
   it.each(['IYZICO', 'PAY_TR', 'SIPAY'])('has no adapter installed for %s', (providerId) => {
     expect(registry.has(providerId)).toBe(false);
     expect(registry.list()).not.toContain(providerId);

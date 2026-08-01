@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android blocks cleartext HTTP by default from API 28 onwards, which is correct for an app
+  that moves money. This narrows that rule rather than relaxing it: HTTP is permitted only for
+  the two addresses that can never be a real deployment — 10.0.2.2 is the Android emulator's
+  alias for the developer's own machine, and localhost is the device itself.
+
+  Every other host, including any production or demo backend, stays https-only. There is
+  deliberately no android:usesCleartextTraffic="true" anywhere, which would have opened the
+  whole app.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">localhost</domain>
+    </domain-config>
+</network-security-config>
