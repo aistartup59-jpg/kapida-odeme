@@ -43,15 +43,42 @@ Chronologically, based on commit history:
 
 ## Current Development Phase
 
-Post-implementation correctness audit and stabilization of the core payment/transaction lifecycle, following completion of the core epics (auth, payment domain, provider orchestration, hybrid transactions). Per explicit user instruction, all auditing has been stopped and no further code changes are being made until this status is reviewed.
+The Android app exists and works end to end for cash and for a demo-provider bank QR, in both
+of the product's two modes (business sign-in, and login-free order platform hand-off). The
+product was renamed to PayALS. Focus has moved from building the domain to getting something
+demonstrable in front of customers.
 
 ## Last Completed Development Task
 
-`bc16b12` — `fix(auth): scope merchant refresh to merchant sessions and enforce expiry` (most recent commit on `main`).
+`6b31ed1` — `feat(demo): make the demo environment deployable and self-seeding`.
 
 ## Next Planned Development Task
 
-Not yet determined — development is paused pending user review of `PROJECT_STATUS.md` and `AUDIT_STATUS.md`, per explicit instruction to regain control before continuing.
+Stand up the permanent demo environment on Railway, following `docs/demo-environment.md`. That
+needs a Railway account and a card, so it starts with the account owner, not with code.
+
+### Open decisions carried into the next session
+
+- **Domain.** `payals.com` is registered but dormant since 2008 and expires 2026-08-19 — worth
+  an offer to the holder and a backorder. Otherwise `payals.app` plus `payalspos.com`
+  redirecting to it. `pay-als.com` was rejected: a hyphen sends typo traffic to a stranger.
+- **applicationId is `com.payals.pos`,** the reverse of a domain we do not own. Correct it to
+  match whatever is bought — free until the first Play release, impossible afterwards.
+- **Deep links use the custom scheme `payals://`,** which any app on the device can also
+  register. Once a domain exists this should become an Android App Link verified through
+  `assetlinks.json`, using signing SHA-256
+  `0964d18e473fd474721d2597d387d4844d92d1cd9a24254884bd3b1b2e94ab58`.
+
+### Known gaps
+
+- **Bank QR only works with the demo provider.** The ParamPOS adapter is an unimplemented
+  stub, and there is no provider webhook endpoint — the app polls for completion instead.
+  A real provider integration is the largest remaining piece.
+- **NFC is inert.** Accepting a contactless card on a phone requires a PCI-certified SoftPOS
+  SDK from the provider.
+- **The partner channel has no webhook.** Platforms poll `GET /partner/payments` to confirm a
+  collection. Push delivery (signed, retried) was deliberately deferred rather than half-built.
+- **No rate limiting anywhere,** and merchant registration is open.
 
 ## Known Technical Decisions (ADR Summary)
 
