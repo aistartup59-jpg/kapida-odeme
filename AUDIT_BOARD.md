@@ -166,6 +166,14 @@ Every file that still requires auditing (🟡 or ⬜), grouped by phase. 🟢 an
 
 Only findings that require an architecture change belong here.
 
+**✅ Resolved 2026-08-03** — see the entry below for what the finding was and why it was held
+open. What unblocked it was ADR-014: once a provider became a free-form string id rather than an
+enum, the storage design no longer had anything to be shaped around. `vaulted_credentials` holds
+ciphertext against an opaque reference and no provider-specific column, so installing a provider
+still touches nothing but an adapter. Migration `1785800000000-PersistVaultedCredentials.ts`;
+covered by `test/integration/provider/credential-vault-persistence.spec.ts`, which asserts the
+property the change was made for — a reference written by one process is readable by the next.
+
 **Title:** `CredentialVaultService` uses in-memory storage only, no persistence
 
 **Reason:** `payment-provider/security/credential-vault.service.ts` stores vaulted merchant provider credentials in a plain in-process `Map` (self-documented in the code as "Placeholder in-memory store. Persistent storage is out of scope for this sprint."). Credentials are lost on every restart/deploy and are not shared across multiple app instances. This contradicts `PROJECT_STATUS.md`, which currently lists "Credential vault/encryption" under production-ready features. Per user (2026-07-18): likely an intentional gap, left open because persistent storage design shouldn't be built around any single provider (ParamPOS, iyzico, etc.) before the multi-provider shape is settled — not an oversight, but still needs a real fix before this is production-ready. The encryption itself (`credential-encryption.service.ts`) is sound (AES-256-GCM, correct IV/auth-tag handling) — only the storage layer is a placeholder.
@@ -183,20 +191,36 @@ Backend Freeze            ✅ declared 2026-07-19
         ↓
 Backend Integration Test Suite   ✅ all 9 phases complete 2026-07-20 (38 suites, 200 tests)
         ↓
-Flutter Development   ← we are here (not yet started)
+Flutter Development       ✅ Android POS app built for both products (ADR-015)
+        ↓
+Backend Freeze lifted     ✅ 2026-08-03
+        ↓
+Productisation   ← we are here
         ↓
 Website Development
         ↓
-New Features
+Beta release
 ```
 
-Flutter (`flutter/`) has no tracked implementation yet and Website (`website/`) is still an unmodified Next.js skeleton — both resume only after the backend audit above is complete and frozen.
+Productisation is what stands between a working app and one that can be given to a stranger.
+In order: the credential vault made persistent ✅, rate limiting ✅, mobile test coverage ✅,
+then the demo environment stood up on Railway, a real provider integration, and the domain and
+`applicationId` decisions that stop being reversible at the first Play Store upload.
+
+Website (`website/`) is still an unmodified Next.js skeleton.
 
 ---
 
 # Backend Freeze Rules
 
-**Declared:** 2026-07-19. **In effect until explicitly lifted by the user.**
+**Declared:** 2026-07-19. **Lifted:** 2026-08-03 — the section below is kept as the record of
+what the freeze meant while it was on, not as a rule still in force.
+
+The freeze existed so Flutter and Website could build against an API contract that did not move
+underneath them. The Android app has since been written against it, so the purpose is served.
+What remained afterwards were the two production gaps the freeze itself had been forbidding
+anyone from closing — a credential store that lost its contents on every restart, and no rate
+limiting anywhere — which is what made lifting it the next step rather than a loosening.
 
 Backend Freeze means the backend is feature-complete: audited, core bugs fixed, and now only being verified — not extended. Analogy: the house is built and inspected; now it's sealed and walls no longer get broken open, only tested room by room.
 
@@ -312,11 +336,31 @@ When this phase is done, every critical backend workflow is verified by automate
 
 **Last completed task:** Pre-freeze QR verification, requested by the user before starting Backend Freeze. Confirmed the QR design already matches ADR-003 (single real Bank QR per PaymentRequest via `provider.generateBankQR()`, provider-agnostic response shape with no bank-specific fields, never derived from a Payment Link). Found the provider's `qrData`/`expiresAt` were fetched in `payment-engine.service.ts` and discarded — never reaching the API response, so even a completed ParamPOS implementation would have no way to surface the QR to the merchant/employee app. User chose to return it ephemerally on the create response rather than persist it (mirrors ADR-002's derive-don't-store treatment of `remainingAmount`). Threaded `qrData`/`qrExpiresAt` through `PaymentExecutionResult` → new `CreatePaymentEngineResult` → `PaymentRequestResponseDto`; `createPaymentRequest` now returns the DTO (via `toResponse()`) instead of the raw entity, consistent with the other endpoints. Build passed, user approved, committed and pushed as `92dc4bb`.
 
-**Current task:** **Backend Integration Test Suite complete — all 9 phases done.** 38 suites / 200 tests total (Phase 1: 8/42, Phase 2: 5/24, Phase 3: 4/25, Phase 4: 5/34, Phase 5: 4/23, Phase 6: 4/19, Phase 7: 1/6, Phase 8: 3/19, Phase 9: 4/8). Five bugs found and fixed during testing: Phase 1's cross-tenant employee creation (#23), Phase 4's `recordTransaction` response missing `remainingAmount`/`transactions` (#24), Phase 6's `PAYMENT_LINK` create response missing `linkUrl`/`linkExpiresAt` (#25), Phase 7's malformed payment/provider id causing a raw `500` instead of `400` (#26), and Phase 9's genuine Postgres deadlock under 3+ concurrent provider activations (#27). Backend Freeze remains in effect (see Backend Freeze Rules above) — this milestone completes the Freeze's stated purpose (stable API contract for Flutter/Website to build against), not an invitation to resume feature work without the user explicitly lifting it.
+**Current task (2026-08-03):** **Backend Freeze lifted; productisation started.** Three items
+closed in order. (1) `CredentialVaultService` is now backed by a `vaulted_credentials` table
+(migration `1785800000000`) instead of a process-local `Map` — this closes the Deferred Finding
+below, which ADR-014 had already made safe to build: a provider is a free-form id, so the vault
+stores ciphertext against an opaque reference and knows nothing about which provider it belongs
+to. (2) Rate limiting added application-wide via `@nestjs/throttler`, counted per credential
+where one exists (partner API key, hand-off token) and per address otherwise — with `TRUST_PROXY`
+in `main.ts`, without which every request behind Railway's router would share one counter.
+(3) Mobile test coverage taken from 1 file to 4 (31 tests), covering the response parsing every
+on-screen amount depends on and the session refresh that keeps a courier from being dropped to
+the login screen mid-collection. Backend: 45 suites / 251 tests green. Mobile: `flutter analyze`
+clean, `flutter test` 31/31.
 
-**Next task:** Per the Resume Development chain: Flutter Development is next, pending explicit user direction to start it. No backend work is currently queued.
+**Previous milestone:** **Backend Integration Test Suite complete — all 9 phases done.** 38 suites / 200 tests total (Phase 1: 8/42, Phase 2: 5/24, Phase 3: 4/25, Phase 4: 5/34, Phase 5: 4/23, Phase 6: 4/19, Phase 7: 1/6, Phase 8: 3/19, Phase 9: 4/8). Five bugs found and fixed during testing: Phase 1's cross-tenant employee creation (#23), Phase 4's `recordTransaction` response missing `remainingAmount`/`transactions` (#24), Phase 6's `PAYMENT_LINK` create response missing `linkUrl`/`linkExpiresAt` (#25), Phase 7's malformed payment/provider id causing a raw `500` instead of `400` (#26), and Phase 9's genuine Postgres deadlock under 3+ concurrent provider activations (#27). Backend Freeze remains in effect (see Backend Freeze Rules above) — this milestone completes the Freeze's stated purpose (stable API contract for Flutter/Website to build against), not an invitation to resume feature work without the user explicitly lifting it.
 
-**Blocked by:** Nothing currently. Docker/`postgres-test` confirmed working (2026-07-20).
+**Next task:** Continue productisation. The remaining items, none of which need a domain: stand
+up the demo environment on Railway (`docs/demo-environment.md` — needs an account and a card,
+so it starts with the account owner), a real provider integration to replace the ParamPOS stub,
+and a webhook for the partner channel to replace polling. Separately, and on a clock of its own:
+`payals.com` expires 2026-08-19, and the domain decision fixes both `applicationId` and whether
+deep links can become verified App Links — all three stop being reversible at the first Play
+Store upload, so that upload is the line not to cross before deciding.
+
+**Blocked by:** Nothing currently. Docker/`postgres-test` confirmed working (re-confirmed
+2026-08-03).
 
 **Important reminders:**
 - Only `PaymentStateMachineService.applyTransition()` may change `PaymentRequest.status` (ADR-011).
@@ -557,5 +601,67 @@ Record only important audit-board milestones.
 - Build passed, full suite green: **38 suites, 200 tests, all passing.**
 - **Backend Integration Test Suite complete — all 9 phases done.** Per the Resume Development chain, Flutter Development is next (pending explicit user direction to start it); Backend Freeze remains in effect until the user explicitly lifts it.
 - User confirmed: next session resumes with Flutter Development. **Session ending for the day.**
+
+**2026-07-21 → 2026-08-01 (recorded retrospectively)**
+- This board was not updated during the Flutter phase; the record for that period is the commit
+  history, `PROJECT_STATUS.md`, and `docs/demo-environment.md`. Noted here so the gap reads as a
+  gap rather than as a period in which nothing happened.
+- What landed: the Android POS app for both products (`c8d289c`), the rename to PayALS
+  (`5328670`) and a reissued release keystore (`b636b45`), a restored production entry point
+  (`dec692f`), a fix for a hand-off arriving while the app was already open (`da6c9c6`), a
+  demonstrable QR flow behind an explicit switch (`62178fe`), and a deployable, self-seeding demo
+  environment (`6b31ed1`). ADR-013, ADR-014 and ADR-015 were written during this period. The
+  integration suite grew with it — 38 suites/200 tests at the end of Phase 9, 43/240 by 2026-08-03.
+
+**2026-08-03**
+- User asked whether Flutter and productisation needed the domain decision first. They do not:
+  the domain gates only the first Play Store upload (which freezes `applicationId` forever),
+  verified App Links, and the website. Everything else — including handing a signed APK to a real
+  user — is free to proceed. Separate clock noted: `payals.com` expires 2026-08-19.
+- User lifted **Backend Freeze** and asked to work through the productisation gaps in order,
+  without stopping for design questions.
+- **Credential vault made persistent.** Replaced the in-memory `Map` with a `vaulted_credentials`
+  table (new `VaultedCredential` entity, migration `1785800000000`). One thing caught while
+  writing it: `reference` could not be a `uuid` column, because `DemoSeedService` mints
+  `demo-<merchantId>` while `MerchantPaymentProviderService` mints a bare `randomUUID()` — the
+  reference is opaque by design, so the column is `varchar`. The service's audited write ordering
+  (vault first, row second, old reference deleted only after the new one is durable) was left
+  exactly as it was; an orphaned ciphertext row on a failed write is unreferenced and harmless,
+  and reordering it would have reintroduced fix #6.
+- Added `credential-vault-persistence.spec.ts` (6 tests): survives a real `app.close()` +
+  re-create, stores no plaintext, gives every write its own IV, rotation removes the superseded
+  row, deleting a provider leaves nothing behind. Also extended `test-app.helper.ts`'s truncation
+  list, which had never been updated for `partner_api_keys`/`handoff_sessions` and now covers
+  `vaulted_credentials` too.
+- **Rate limiting added.** `@nestjs/throttler` v5, one `APP_GUARD` for the whole application so a
+  new endpoint cannot quietly have no limit. Limits: 600/min global, 20/min on anything accepting
+  a secret, 5/min on merchant registration, 300/min on the partner channel — all overridable by
+  env, with `.env.test` effectively disabling them for the suite.
+- Two things shaped those numbers rather than being picked for neatness. The collection screen
+  polls every 3 seconds, so a shop with several devices behind one NAT address generates far more
+  traffic than a naive per-client limit would allow. And an order platform's backend is a single
+  machine acting for every courier it employs, so counting it by address would throttle the whole
+  platform as one client — hence `CredentialAwareThrottlerGuard`, which counts by API key or
+  hand-off token where one is present and falls back to the address only when it is not.
+- `TRUST_PROXY` added to `main.ts` (extracted to `shared/rate-limit/proxy-trust.ts` so the test
+  uses the real code path). Without it, every request behind Railway's router shares one counter
+  and the first busy minute locks everyone out; trusting the header blindly instead would let a
+  caller pick a fresh identity per request. It therefore takes a hop count, not a boolean.
+  Documented in `docs/demo-environment.md` as a required Railway variable.
+- Added `security/rate-limit.spec.ts` (5 tests). It sets its own limits via `require` ordering —
+  `@Throttle` reads them when the controller class is defined, so `import` would be hoisted above
+  the assignment — and gives each test its own `X-Forwarded-For` address so the tests cannot
+  starve each other. Covers runaway signups, password guessing, a neighbour being unaffected, the
+  global backstop, and the per-API-key property that address-based counting would get wrong.
+- **Mobile test coverage** taken from 1 file to 4, 31 tests, no new dependency (a fake Dio
+  `HttpClientAdapter` and a method-channel stand-in for the Android keystore). `payment_models_test`
+  covers the parse every on-screen amount depends on — including that `remainingAmount` is read
+  from the server and never recomputed locally (ADR-002), and that a response with no QR is normal
+  rather than an error (ADR-003). `api_client_test` covers error surfacing, the hand-off client
+  treating a 401 as final (ADR-015: the token cannot be refreshed), the session client refreshing
+  once and replaying so a courier is not dropped to the login screen mid-collection, and a
+  half-written session being reported as no session.
+- **No product bugs found** in this session's work. Backend: `npm run build` clean, 45 suites /
+  251 tests green. Mobile: `flutter analyze` clean, `flutter test` 31/31.
 
 Future sessions will append new entries here.

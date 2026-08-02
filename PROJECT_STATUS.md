@@ -50,7 +50,9 @@ demonstrable in front of customers.
 
 ## Last Completed Development Task
 
-`6b31ed1` — `feat(demo): make the demo environment deployable and self-seeding`.
+Backend Freeze lifted (2026-08-03) and the first three productisation gaps closed: the credential
+vault made persistent, rate limiting added across the application, and mobile test coverage taken
+from one file to four.
 
 ## Next Planned Development Task
 
@@ -78,7 +80,13 @@ needs a Railway account and a card, so it starts with the account owner, not wit
   SDK from the provider.
 - **The partner channel has no webhook.** Platforms poll `GET /partner/payments` to confirm a
   collection. Push delivery (signed, retried) was deliberately deferred rather than half-built.
-- **No rate limiting anywhere,** and merchant registration is open.
+- **Merchant registration is still open** — anyone can create an account. Rate limiting now caps
+  how fast that can be done (5/minute per client), but it is a brake, not an admission policy.
+- **Rate limit counters are per instance.** Two instances allow twice the configured rate. That
+  is an acceptable degradation for a limit and avoids adding Redis to the deployment, but it
+  stops being true if this is ever scaled out far enough for the limits to need to be exact.
+  `TRUST_PROXY` must be set on any host that sits behind a load balancer, or every client shares
+  one counter — see `docs/demo-environment.md`.
 
 ## Known Technical Decisions (ADR Summary)
 
@@ -112,15 +120,16 @@ Based on repository evidence (implemented, integrated, and subject to the fix cy
 - Payment lifecycle state machine and centralized transition enforcement
 - Hybrid/partial transaction recording with append-only ledger semantics
 - Payment cancellation flow
-- Credential encryption (AES-256-GCM) and required-secret startup checks
+- Credential encryption (AES-256-GCM) and required-secret startup checks, with the vault now
+  persisted in `vaulted_credentials` rather than in process memory
+- Rate limiting across every route, counted per credential where one exists and per client
+  address otherwise
 - Database migrations and decimal-safe persistence
 
 ## What Is Still Under Development
 
-- `modules/notification` — module scaffold exists with no controllers/providers/logic implemented
-- Flutter mobile app — no tracked implementation in the repository
 - Website — Next.js skeleton only, no product-specific pages or integration
 - Refund flow — explicitly deferred by ADR-012 ("exact refund event model is left to the future Refund epic")
-- Additional payment providers beyond ParamPOS — architecture supports them (ADR-007) but none are implemented
-- Credential vault persistence — `CredentialVaultService` stores vaulted provider credentials in an in-memory `Map` only (self-documented placeholder); lost on restart and not shared across instances. Encryption itself is sound, only the storage layer is a placeholder. See `AUDIT_BOARD.md` Deferred Findings.
+- Additional payment providers beyond the demo adapter — architecture supports them (ADR-007/ADR-014) but the ParamPOS adapter is still an unimplemented stub
+- Partner webhook — platforms poll rather than being pushed to
 - Any module or area not yet covered by the audit cycle — see `AUDIT_BOARD.md` for the module-by-module breakdown
