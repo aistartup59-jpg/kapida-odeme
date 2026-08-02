@@ -2,7 +2,14 @@
 
 ## Overview
 
-The payment API is expected to support payment request and transaction workflows for merchants and employees. The current backend scaffold includes payment and transaction modules, but the implementation surface is still pending.
+Payment request and transaction workflows for merchants, employees, and order platform
+couriers. Implemented and covered by the integration suite. Every route is under the `/api`
+prefix.
+
+- `POST /payments` — the single creation endpoint (ADR-005). `merchantId`/`employeeId` always
+  come from the JWT and are rejected if supplied.
+- `GET /payments`, `GET /payments/:id`
+- `POST /payments/:id/qr`, `POST /payments/:id/transactions`, `POST /payments/:id/cancel`
 
 ## Approved API modeling guidance
 
@@ -65,12 +72,23 @@ Merchants manage the keys themselves at `POST|GET|DELETE /merchant/partner-keys`
 - `POST /payments/:id/qr` issues a real Bank QR for whatever is still owed. A collection is opened before the customer has chosen how to pay, and after a partial cash payment the QR must cover the reduced remaining amount.
 - `POST /payments/:id/transactions` records what was actually taken, per method — which is what makes hybrid collection (part cash, part QR) work.
 
+## Rate limits
+
+The partner channel is capped at 300/minute per API key, and everything here at 600/minute per
+caller. See [rate-limits.md](rate-limits.md) — in particular, hand-off requests are counted
+against the token rather than the courier's address.
+
 ## Current status
 
-- Payment module exists as a scaffold.
-- Transaction module exists as a scaffold.
-- No additional payment endpoints are implemented in the current repository state.
+Implemented. What is not yet real behind it:
+
+- The only working provider is the demo adapter, enabled by `DEMO_PAYMENT_PROVIDER` and never
+  to be run in production. The ParamPOS adapter is an honest stub — every dispatch method
+  throws rather than faking success — pending the provider's API contract.
+- There is no provider webhook. Completion is discovered by polling.
+- NFC is accepted as a transaction method but no device can originate one: that needs a
+  PCI-certified SoftPOS SDK from the provider.
 
 ## Notes
 
-This document captures the intended payment API area without changing any existing implementation or contract.
+This document describes the payment API surface as implemented.

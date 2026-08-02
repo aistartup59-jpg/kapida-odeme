@@ -663,5 +663,22 @@ Record only important audit-board milestones.
   half-written session being reported as no session.
 - **No product bugs found** in this session's work. Backend: `npm run build` clean, 45 suites /
   251 tests green. Mobile: `flutter analyze` clean, `flutter test` 31/31.
+- **Production image verified before the Railway deploy rather than by it.** Built
+  `backend/Dockerfile` and booted it against a brand-new Postgres with exactly the variables
+  `docs/demo-environment.md` prescribes. This was worth doing for a specific reason: the demo
+  seed writes its vault reference as `demo-<merchantId>`, so a fresh boot is the only thing that
+  exercises the non-uuid reference against the new column — and the production entry point has
+  broken silently once before (`dec692f`). All ten tables migrated, the seed created its merchant
+  and printed a partner key, and the full ADR-015 round trip ran: mint a hand-off with the API
+  key → courier reads it with the token alone → two cash transactions → `PAID` with
+  `remainingAmount` 0 → platform confirms server side. Rate limiting confirmed in the same boot:
+  6 signups from one forwarded address gave 201×5 then 429, a second address was unaffected, and
+  a direct connection counted separately — which is the check that `TRUST_PROXY=1` actually
+  distinguishes clients rather than lumping the deployment into one counter.
+- **API docs corrected.** `payment-api.md` still said the implementation surface was pending and
+  that no payment endpoints existed; `auth-api.md` was missing `/auth/employee/refresh` and
+  `/auth/employee/logout`. These are the documents an order platform would be handed. Added
+  `docs/api/rate-limits.md` for the new contract — no separate partner doc, because the partner
+  channel is already documented in `payment-api.md` and a second copy would drift from it.
 
 Future sessions will append new entries here.
