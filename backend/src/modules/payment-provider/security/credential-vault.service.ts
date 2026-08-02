@@ -1,28 +1,49 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
-import { CredentialEncryptionService, EncryptedPayload } from './credential-encryption.service';
+import { VaultedCredential } from '../entities/vaulted-credential.entity';
+import { CredentialEncryptionService } from './credential-encryption.service';
 
 @Injectable()
 export class CredentialVaultService {
-  // Placeholder in-memory store. Persistent storage is out of scope for this sprint.
-  private readonly store = new Map<string, EncryptedPayload>();
-
-  constructor(private readonly encryptionService: CredentialEncryptionService) {}
+  constructor(
+    @InjectRepository(VaultedCredential)
+    private readonly vaultRepository: Repository<VaultedCredential>,
+    private readonly encryptionService: CredentialEncryptionService,
+  ) {}
 
   async save(reference: string, plainCredential: string): Promise<void> {
-    this.store.set(reference, this.encryptionService.encrypt(plainCredential));
+    const encrypted = this.encryptionService.encrypt(plainCredential);
+
+    // Upsert rather than insert: callers mint a fresh reference for every rotation, so a
+    // collision should be impossible — but writing the same reference twice must not be the
+    // thing that fails a credential update.
+    await this.vaultRepository.upsert(
+      {
+        reference,
+        iv: encrypted.iv,
+        authTag: encrypted.authTag,
+        content: encrypted.content,
+      },
+      ['reference'],
+    );
   }
 
   async load(reference: string): Promise<string | null> {
-    const encrypted = this.store.get(reference);
-    if (!encrypted) {
+    const stored = await this.vaultRepository.findOne({ where: { reference } });
+    if (!stored) {
       return null;
     }
 
-    return this.encryptionService.decrypt(encrypted);
+    return this.encryptionService.decrypt({
+      iv: stored.iv,
+      authTag: stored.authTag,
+      content: stored.content,
+    });
   }
 
   async delete(reference: string): Promise<void> {
-    this.store.delete(reference);
+    await this.vaultRepository.delete({ reference });
   }
 }

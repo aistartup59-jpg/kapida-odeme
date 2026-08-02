@@ -7,12 +7,13 @@ import { ParamPosConfig } from './adapters/parampos/parampos.config';
 import { ParamPosClient } from './adapters/parampos/parampos.client';
 import { ParamPosAdapter } from './adapters/parampos/parampos.adapter';
 import { MerchantPaymentProvider } from './entities/merchant-payment-provider.entity';
+import { VaultedCredential } from './entities/vaulted-credential.entity';
 import { ProviderResolverService } from './resolver/provider-resolver.service';
 import { CredentialEncryptionService } from './security/credential-encryption.service';
 import { CredentialVaultService } from './security/credential-vault.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([MerchantPaymentProvider])],
+  imports: [TypeOrmModule.forFeature([MerchantPaymentProvider, VaultedCredential])],
   controllers: [],
   providers: [
     ProviderRegistry,

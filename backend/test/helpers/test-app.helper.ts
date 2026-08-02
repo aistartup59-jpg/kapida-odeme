@@ -7,8 +7,11 @@ import { AppModule } from '../../src/app.module';
 // All tables in FK-safe order is unnecessary thanks to CASCADE, but listed for clarity.
 const ALL_TABLES = [
   'transactions',
+  'handoff_sessions',
   'payment_requests',
+  'partner_api_keys',
   'merchant_payment_providers',
+  'vaulted_credentials',
   'merchant_sessions',
   'employees',
   'merchants',
