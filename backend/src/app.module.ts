@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { DatabaseModule } from './database/database.module';
 import { SharedModule } from './shared/shared.module';
+import { RateLimitModule } from './shared/rate-limit/rate-limit.module';
 
 // Feature modules (skeletons)
 import { AuthModule } from './modules/auth/auth.module';
@@ -20,6 +21,7 @@ import { HealthModule } from './modules/health/health.module';
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
     SharedModule,
+    RateLimitModule,
     AuthModule,
     MerchantModule,
     PaymentModule,

@@ -35,6 +35,8 @@ DATABASE_NAME=${{Postgres.PGDATABASE}}
 JWT_SECRET=<64 hex characters, freshly generated>
 CREDENTIAL_ENCRYPTION_SECRET=<64 hex characters, freshly generated>
 
+TRUST_PROXY=1
+
 DEMO_PAYMENT_PROVIDER=true
 DEMO_PAYMENT_SETTLE_MS=7000
 DEMO_SEED_EMAIL=demo@payals.app
@@ -53,6 +55,12 @@ anything reachable from the internet.
 
 `DATABASE_SSL` stays unset: Railway's `PGHOST` is an internal address, and the database is not
 crossing the public internet. Set it to `true` on a host where it does.
+
+`TRUST_PROXY=1` matters more than it looks. Railway puts one router in front of the service, so
+without it every request appears to come from that router — rate limiting would then count the
+whole world against a single allowance and the first busy minute would lock everyone out. The
+`1` is the number of proxies to trust, and it has to be a number rather than "yes": trusting
+blindly lets a caller set `X-Forwarded-For` itself and pick a fresh identity per request.
 
 `PORT` is supplied by Railway and the app already honours it.
 

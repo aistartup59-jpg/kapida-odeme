@@ -1,4 +1,7 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+
+import { AUTH_RATE_LIMIT, SIGNUP_RATE_LIMIT } from '../../shared/rate-limit/rate-limit.policy';
 import { AuthService } from './auth.service';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -15,21 +18,27 @@ import { Role } from './enums/role.enum';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
 
+// Every route here either accepts a secret or creates an account, so each one is rate limited
+// below the application-wide backstop. They are also the only routes an attacker can reach
+// without already holding a credential, which is what makes them worth guessing against.
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('merchant/register')
+  @Throttle({ default: SIGNUP_RATE_LIMIT })
   registerMerchant(@Body() payload: CreateMerchantDto) {
     return this.authService.registerMerchant(payload);
   }
 
   @Post('merchant/login')
+  @Throttle({ default: AUTH_RATE_LIMIT })
   loginMerchant(@Body() payload: MerchantLoginDto) {
     return this.authService.loginMerchant(payload);
   }
 
   @Post('refresh')
+  @Throttle({ default: AUTH_RATE_LIMIT })
   refreshToken(@Body() payload: RefreshTokenDto) {
     return this.authService.refreshToken(payload);
   }
@@ -41,11 +50,13 @@ export class AuthController {
   }
 
   @Post('forgot-password')
+  @Throttle({ default: AUTH_RATE_LIMIT })
   forgotPassword(@Body() payload: ForgotPasswordDto) {
     return this.authService.forgotPassword();
   }
 
   @Post('reset-password')
+  @Throttle({ default: AUTH_RATE_LIMIT })
   resetPassword(@Body() payload: ResetPasswordDto) {
     return this.authService.resetPassword();
   }
@@ -61,21 +72,25 @@ export class AuthController {
   }
 
   @Post('employee/accept-invitation')
+  @Throttle({ default: AUTH_RATE_LIMIT })
   acceptInvitation(@Body() payload: AcceptInvitationDto) {
     return this.authService.acceptInvitation(payload);
   }
 
   @Post('employee/set-password')
+  @Throttle({ default: AUTH_RATE_LIMIT })
   setPassword(@Body() payload: SetPasswordDto) {
     return this.authService.setPassword(payload);
   }
 
   @Post('employee/login')
+  @Throttle({ default: AUTH_RATE_LIMIT })
   loginEmployee(@Body() payload: EmployeeLoginDto) {
     return this.authService.loginEmployee(payload);
   }
 
   @Post('employee/refresh')
+  @Throttle({ default: AUTH_RATE_LIMIT })
   @UseGuards(JwtAuthGuard)
   refreshEmployeeToken(
     @Body() payload: RefreshTokenDto,
