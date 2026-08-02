@@ -351,10 +351,26 @@ clean, `flutter test` 31/31.
 
 **Previous milestone:** **Backend Integration Test Suite complete — all 9 phases done.** 38 suites / 200 tests total (Phase 1: 8/42, Phase 2: 5/24, Phase 3: 4/25, Phase 4: 5/34, Phase 5: 4/23, Phase 6: 4/19, Phase 7: 1/6, Phase 8: 3/19, Phase 9: 4/8). Five bugs found and fixed during testing: Phase 1's cross-tenant employee creation (#23), Phase 4's `recordTransaction` response missing `remainingAmount`/`transactions` (#24), Phase 6's `PAYMENT_LINK` create response missing `linkUrl`/`linkExpiresAt` (#25), Phase 7's malformed payment/provider id causing a raw `500` instead of `400` (#26), and Phase 9's genuine Postgres deadlock under 3+ concurrent provider activations (#27). Backend Freeze remains in effect (see Backend Freeze Rules above) — this milestone completes the Freeze's stated purpose (stable API contract for Flutter/Website to build against), not an invitation to resume feature work without the user explicitly lifting it.
 
-**Next task:** Continue productisation. The remaining items, none of which need a domain: stand
-up the demo environment on Railway (`docs/demo-environment.md` — needs an account and a card,
-so it starts with the account owner), a real provider integration to replace the ParamPOS stub,
-and a webhook for the partner channel to replace polling. Separately, and on a clock of its own:
+**Next task (first thing, 2026-08-04): the hand-off deep link does not open the app.** With the
+release APK installed, `payals://collect?token=...` failed to reach the app by every delivery
+route tried — Chrome's address bar (it searches for it instead), a tapped anchor on a hosted
+page, and a scanned QR code. Not yet diagnosed with `adb`, which is the one path that bypasses
+every intermediary and so tells us which of two things is wrong:
+
+```bash
+adb shell am start -a android.intent.action.VIEW -d "payals://collect?token=<token>"
+```
+
+If that opens the app, the intent filter is fine and only delivery is broken — a demo problem,
+solved permanently by the App Link migration. If it does not, the fault is in the app and this
+is a real bug. Requires the phone on USB with USB debugging enabled; the user is bringing it.
+The intent filter itself was read and looks correct (`VIEW` + `DEFAULT` + `BROWSABLE`, scheme
+`payals`, host `collect`, `singleTop`).
+
+**Then:** the remaining productisation items, none of which need a domain — a real provider
+integration to replace the ParamPOS stub (waiting on the provider's sandbox contract) and a
+webhook for the partner channel to replace polling (deliberately deferred: no platform consumes
+it yet, so building it now would be a YAGNI violation). Separately, and on a clock of its own:
 `payals.com` expires 2026-08-19, and the domain decision fixes both `applicationId` and whether
 deep links can become verified App Links — all three stop being reversible at the first Play
 Store upload, so that upload is the line not to cross before deciding.
@@ -680,5 +696,30 @@ Record only important audit-board milestones.
   `/auth/employee/logout`. These are the documents an order platform would be handed. Added
   `docs/api/rate-limits.md` for the new contract — no separate partner doc, because the partner
   channel is already documented in `payment-api.md` and a second copy would drift from it.
+
+**2026-08-03 (cont.) — demo environment is live**
+
+- User stood the Railway environment up. Address:
+  `https://kapida-odeme-production.up.railway.app`. Demo sign-in `demo@payals.app`, and a partner
+  API key was issued through the API rather than recovered from the logs.
+- Two deploys failed first, both at "Build image" in about two seconds. Cause was an unset **Root
+  Directory** — Railway was building the repository root, which holds four projects and nothing
+  it could build. A build that fails that fast is not a compile error; it is "nothing found to
+  build". Fixed by setting it to `backend`.
+- Because the app had never booted, the demo seed had never run, which is why the partner API key
+  the user was told to copy from the logs did not exist. Once it booted, signing in as the demo
+  merchant and calling `POST /merchant/partner-keys` produced one — worth remembering as the
+  recovery path, since the key is only ever printed once.
+- Two more setup steps were missing from `docs/demo-environment.md` and cost time: the database
+  has to be added from the canvas context menu (there is no menu button for it) and **before**
+  deploying, or the `${{Postgres.*}}` references cannot resolve; and "Generate Domain" asks for a
+  *port*, not a name, which must match a `PORT` variable or every request returns 502. Both are
+  now written down, along with the Root Directory symptom.
+- Verified the live environment end to end: hand-off minted with the API key → courier read it
+  with the token alone → QR issued by the demo provider → demo provider settled it → `PAID`,
+  `remainingAmount` 0 → platform confirmed server side. Release APK built against the live
+  address (20.9 MB, signed).
+- **Open problem carried to the next session:** the deep link does not open the app from the
+  phone. See Next task above.
 
 Future sessions will append new entries here.

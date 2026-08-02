@@ -13,10 +13,17 @@ Railway needs an account and a card; that part cannot be automated from here.
 1. Sign in at railway.app with the GitHub account that owns this repository.
 2. **New Project → Deploy from GitHub repo → this repository.**
 3. In the service settings, set **Root Directory** to `backend`. Without it Railway tries to
-   build the repository root, which holds four projects.
-4. **New → Database → Add PostgreSQL** in the same project.
-5. Paste the variables below into the service's **Variables** tab.
-6. Settings → Networking → **Generate Domain**. That URL is the demo backend.
+   build the repository root, which holds four projects. The symptom when this is missed is a
+   build that fails in about two seconds at "Build image" — not a compile error, because there
+   was never anything found to compile.
+4. Add the database **before** deploying: right-click the empty canvas → **Database** →
+   **PostgreSQL** (there is no button for this in a menu; `Ctrl+K` and typing `postgres` also
+   works). The `${{Postgres.*}}` variables below cannot resolve until this exists.
+5. Paste the variables below into the service's **Variables** tab — use **Raw Editor** and paste
+   the whole block at once rather than adding them one at a time.
+6. Settings → Networking → **Generate Domain**. It asks for a *port*, not a name; Railway picks
+   the name. Enter `3000`, matching the `PORT` variable below. If the two disagree the domain
+   resolves but every request returns 502.
 
 Railway rebuilds on every push to `main` from then on.
 
@@ -35,6 +42,7 @@ DATABASE_NAME=${{Postgres.PGDATABASE}}
 JWT_SECRET=<64 hex characters, freshly generated>
 CREDENTIAL_ENCRYPTION_SECRET=<64 hex characters, freshly generated>
 
+PORT=3000
 TRUST_PROXY=1
 
 DEMO_PAYMENT_PROVIDER=true
@@ -103,19 +111,37 @@ curl -s -X POST $API/partner/handoffs \
   -d '{"externalOrderId":"DEMO-2001","totalAmount":250}'
 ```
 
-Turn the returned `handoffToken` into a QR code or a link and open it on the phone:
-
 ```
 payals://collect?token=<handoffToken>&returnUrl=https://payals.app
 ```
 
 The app opens straight on the collection, with no login — which is the part worth showing.
 
+**Getting that link to fire is the hard part, and it is the custom scheme's fault.** Unresolved
+as of 2026-08-03: with the app installed, none of pasting the link into Chrome's address bar
+(Chrome treats an unknown scheme as a search query), tapping a real anchor on a hosted page, or
+scanning it as a QR code opened the app on the test device. Not yet diagnosed with `adb`, which
+is the one delivery path that bypasses every intermediary:
+
+```bash
+adb shell am start -a android.intent.action.VIEW -d "payals://collect?token=<handoffToken>"
+```
+
+That command separates the two possible faults — if it opens the app, the intent filter is fine
+and only delivery is broken; if it does not, the fault is in the app.
+
+None of this survives the move to a verified App Link. Once a domain exists,
+`https://<domain>/collect?token=...` is an ordinary link that WhatsApp, notes apps and the
+address bar all treat as a link, and the whole problem disappears. It is the clearest practical
+argument for settling the domain question.
+
 ## Things to know about running this publicly
 
 - **Registration is open.** Anyone with the URL can create a merchant account. That is
   deliberate, so a prospect can sign up in front of you, but it also means the demo database
   accumulates strangers' accounts. Wipe it before an important demo if it gets noisy.
-- **There is no rate limiting.** Fine for a demo, not fine for production.
+- **Rate limiting is on**, which is why `TRUST_PROXY=1` is not optional here. Signups are capped
+  at 5/minute per client, so a scripted flood cannot fill the database — but a person sitting in
+  front of you can still sign up as often as a demo needs.
 - **The demo provider settles payments nobody made.** That is the entire point here and
   entirely unacceptable anywhere else. Production must leave `DEMO_PAYMENT_PROVIDER` unset.
