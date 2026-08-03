@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/api_client.dart';
+import '../../core/brand.dart';
 import '../../core/di.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -63,9 +64,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('PayALS', style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 4),
-                Text('Kapıda tahsilat', style: Theme.of(context).textTheme.bodyMedium),
+                const BrandLockup(height: 52),
+                const SizedBox(height: 8),
+                Text(
+                  'Kapıda tahsilat',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 const SizedBox(height: 32),
                 // Only the business side signs in. An order platform's courier never lands
                 // here — they arrive on a hand-off link and collect without an account.

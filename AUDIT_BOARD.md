@@ -45,7 +45,7 @@ This workflow is permanent.
 ---
 
 **Project:** Kapıda Ödeme / PayALS
-**Last Updated:** 2026-08-03
+**Last Updated:** 2026-08-04
 **Current Phase:** —
 **Current Module:** —
 **Current File:** Backend Audit Complete
@@ -210,8 +210,9 @@ decisions that stop being reversible at the first Play Store upload.
 
 Website Development is drawn after Productisation above, but the two now overlap: the website is
 where `/.well-known/assetlinks.json` has to be served from, which is what turns the hand-off deep
-link into a verified App Link. Website (`website/`) is an unmodified Next.js skeleton as of
-`f2c4edd`; first real content starts 2026-08-03.
+link into a verified App Link. The website stopped being a `create-next-app` skeleton on
+2026-08-04 — landing, appointment and contact are built on the real brand. `assetlinks.json`
+still cannot be written: it needs the domain and the signing certificate's SHA-256.
 
 ---
 
@@ -389,11 +390,65 @@ Minor, noted not fixed: the app renders "süresi dolmuş" (expired) for a token 
 collapsing invalid and expired into one message. Harmless to a courier, but it points the wrong
 way during a demo.
 
-**Next task (2026-08-03): website (`website/`) — first real content.** Marketing/landing,
-appointment request, and contact. Standing on an untouched `create-next-app` skeleton (Next 16.2.9,
-React 19.2.4, Tailwind 4, TypeScript 5) whose single commit is `f2c4edd`. Not merely the
-brochure it looks like: this project is what will serve `/.well-known/assetlinks.json`, so it sits
-directly on the App Link path above.
+**Done 2026-08-04: the brand exists as files, and both surfaces are built on it.**
+
+The supplied logo arrived as two PDFs, and neither contained vector art — each wrapped a single
+DeviceRGB raster, produced by ReportLab, which is what an AI logo generator emits. There is
+almost certainly no vector original. The pixels were lossless though (Flate, no JPEG), so they
+were lifted out of the PDFs into real PNGs and the brand was recovered from them:
+
+- **Colours are measured, not chosen.** Pink is `#F00161` (24,217 pixels of the wordmark) and the
+  ink is genuinely `#000000`, not an off-black. Both earlier guesses were wrong — the working
+  value had been `#ED3E7D`, noticeably paler and redder than the real one. The icon file samples
+  a hair different (`#ED026A`); the wordmark is the primary asset, so `#F00161` is canonical.
+- **Vector was reconstructed, not traced blindly.** potrace is monochrome and the logo is not, so
+  the pixels were split into an ink mask and a pink mask and traced against a *shared* crop box —
+  cropping them independently would have produced two layers that no longer aligned. Output:
+  `payals-logo.svg` (19 KB, with tagline), `payals-lockup.svg` (9.8 KB, no tagline, for the nav),
+  `payals-mark.svg` (3.1 KB), each with a white-ink inverse for dark grounds.
+- **Icons are generated from the same source**, not hand-exported: five launcher densities
+  (legacy plus adaptive foreground with a real alpha channel), a themed-icon monochrome layer,
+  Play Store 512, and apple-touch. The Flutter launcher icon had been the stock blue Flutter
+  placeholder from 2024-11-13 this entire time.
+
+Website: rebuilt from the skeleton onto the design the user picked — white ground, the device as
+the recurring illustration, pink used as a light field rather than a fill. Ten sections, four
+device screens, a partial-payment ledger that fills on scroll and a Customer Secure Mode keypad
+that genuinely reshuffles. Build and lint clean.
+
+App: the theme seed moved off the leftover green (`0xFF0E7C66`) onto the brand, with the roles
+that carry identity pinned so Material cannot tone them into something adjacent. The login screen
+shows the real lockup. `flutter analyze` clean, 31/31 tests, release APK builds.
+
+**Also 2026-08-04 — the site was advertising two features that do not exist.**
+
+Swapping the hand-drawn device mock-ups for real screenshots is what exposed it: there was no
+screen to capture for either. Found while preparing the captures, not after publishing.
+
+- **NFC is deliberately inert** (`collect_screen.dart`, the button is `onPressed: null` and reads
+  "yakında"). Accepting a contactless card on a phone needs the provider's PCI-certified SoftPOS
+  component; raw Android NFC is not a substitute. The flow is in place waiting for it.
+- **Customer Secure Mode has no implementation at all** — no PIN screen, no keypad, zero matches
+  in the Flutter source. It is a locked product decision (CLAUDE.md) that simply has not been
+  built.
+- The two are the same blocker, not two: the PIN pad only appears when a card asks for a PIN, so
+  Secure Mode cannot ship before card acceptance does. Neither is ours to unblock.
+
+Decision (user, 2026-08-04): keep both on the site, labelled. NFC and Secure Mode now carry
+"Yakında" badges, their copy is in the future tense, the methods heading reads "Bugün iki
+yöntem, yakında üç", the partial-payment example dropped from QR+NFC+cash to QR+cash, and the
+FAQ answer about card safety was rewritten to say what is true today — the app does not read
+cards, so there is no card data for a courier to see. What the app really does today is bank QR
+plus cash, and hybrid collection across the two.
+
+Four real screens replaced every drawn one (`website/public/screens/`), captured off the device
+while the flow was walked by hand — input injection is blocked on this phone, so the capture
+watched rather than drove.
+
+**Next task: still the domain.** ⏰ `payals.com` expires 2026-08-19 and nothing below moves until
+it is decided — `assetlinks.json` needs the domain, the contact address on the site is a
+placeholder (`merhaba@payals.com`) waiting on it, and the Resend sender needs a verified domain
+before the appointment form can deliver to anyone but our own inbox.
 
 **Then:** the remaining productisation items, none of which need a domain — a real provider
 integration to replace the ParamPOS stub (waiting on the provider's sandbox contract) and a

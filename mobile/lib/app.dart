@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/brand.dart';
 import 'core/di.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/register_screen.dart';
@@ -34,7 +35,7 @@ class App extends ConsumerWidget {
       title: 'PayALS',
       navigatorKey: navigatorKey,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0E7C66)),
+        colorScheme: Brand.colorScheme,
         useMaterial3: true,
       ),
       initialRoute: '/',

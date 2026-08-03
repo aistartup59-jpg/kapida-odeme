@@ -1,26 +1,44 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* Brand values are measured, not chosen: the pink and the ink were sampled out
+   of the supplied logo artwork pixel by pixel. See website/public/brand/. */
+@theme {
+  --color-pink: #f00161;
+  --color-pink-deep: #c4004f;
+  --color-pink-tint: #ffecf4;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-ink: #000000;
+  --color-ink-2: #33303a;
+  --color-muted: #6a636b;
+  --color-faint: #8b838b;
+
+  --color-paper: #ffffff;
+  --color-surface: #f8f5f7;
+  --color-line: #eae3e8;
+  --color-line-strong: #dcd2da;
+
+  --font-display: var(--font-outfit);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* The site commits to a light ground — the logo lives on white and the design
+   was chosen that way. It deliberately does not follow the OS theme. */
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
