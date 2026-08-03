@@ -45,7 +45,7 @@ This workflow is permanent.
 ---
 
 **Project:** Kapıda Ödeme / PayALS
-**Last Updated:** 2026-07-19
+**Last Updated:** 2026-08-03
 **Current Phase:** —
 **Current Module:** —
 **Current File:** Backend Audit Complete
@@ -204,10 +204,14 @@ Beta release
 
 Productisation is what stands between a working app and one that can be given to a stranger.
 In order: the credential vault made persistent ✅, rate limiting ✅, mobile test coverage ✅,
-then the demo environment stood up on Railway, a real provider integration, and the domain and
-`applicationId` decisions that stop being reversible at the first Play Store upload.
+the demo environment stood up on Railway ✅, the hand-off deep link diagnosed and cleared of
+being an app bug ✅, then a real provider integration, and the domain and `applicationId`
+decisions that stop being reversible at the first Play Store upload.
 
-Website (`website/`) is still an unmodified Next.js skeleton.
+Website Development is drawn after Productisation above, but the two now overlap: the website is
+where `/.well-known/assetlinks.json` has to be served from, which is what turns the hand-off deep
+link into a verified App Link. Website (`website/`) is an unmodified Next.js skeleton as of
+`f2c4edd`; first real content starts 2026-08-03.
 
 ---
 
@@ -351,27 +355,51 @@ clean, `flutter test` 31/31.
 
 **Previous milestone:** **Backend Integration Test Suite complete — all 9 phases done.** 38 suites / 200 tests total (Phase 1: 8/42, Phase 2: 5/24, Phase 3: 4/25, Phase 4: 5/34, Phase 5: 4/23, Phase 6: 4/19, Phase 7: 1/6, Phase 8: 3/19, Phase 9: 4/8). Five bugs found and fixed during testing: Phase 1's cross-tenant employee creation (#23), Phase 4's `recordTransaction` response missing `remainingAmount`/`transactions` (#24), Phase 6's `PAYMENT_LINK` create response missing `linkUrl`/`linkExpiresAt` (#25), Phase 7's malformed payment/provider id causing a raw `500` instead of `400` (#26), and Phase 9's genuine Postgres deadlock under 3+ concurrent provider activations (#27). Backend Freeze remains in effect (see Backend Freeze Rules above) — this milestone completes the Freeze's stated purpose (stable API contract for Flutter/Website to build against), not an invitation to resume feature work without the user explicitly lifting it.
 
-**Next task (first thing, 2026-08-04): the hand-off deep link does not open the app.** With the
-release APK installed, `payals://collect?token=...` failed to reach the app by every delivery
-route tried — Chrome's address bar (it searches for it instead), a tapped anchor on a hosted
-page, and a scanned QR code. Not yet diagnosed with `adb`, which is the one path that bypasses
-every intermediary and so tells us which of two things is wrong:
+**✅ Resolved 2026-08-03 — the hand-off deep link is not an app bug.** The symptom was that
+`payals://collect?token=...` reached the app by none of the delivery routes tried against the
+release APK: Chrome's address bar, a tapped anchor on a hosted page, and a scanned QR code.
+Diagnosed with the one path that bypasses every intermediary:
 
 ```bash
-adb shell am start -a android.intent.action.VIEW -d "payals://collect?token=<token>"
+adb shell am start -a android.intent.action.VIEW -d "payals://collect?token=hof_adbtest123"
 ```
 
-If that opens the app, the intent filter is fine and only delivery is broken — a demo problem,
-solved permanently by the App Link migration. If it does not, the fault is in the app and this
-is a real bug. Requires the phone on USB with USB debugging enabled; the user is bringing it.
-The intent filter itself was read and looks correct (`VIEW` + `DEFAULT` + `BROWSABLE`, scheme
-`payals`, host `collect`, `singleTop`).
+The app opened. `dumpsys package` confirmed the filter is registered as declared (`VIEW` +
+`DEFAULT` + `BROWSABLE`, scheme `payals`, authority `collect`), `am start` produced a cold start
+with `topResumedActivity=com.payals.pos/.MainActivity`, and the whole chain past the intent ran:
+Flutter parsed the token, asked the backend, and rendered the rejection screen for the deliberately
+invalid test token. No `AndroidRuntime` exception anywhere in logcat.
+
+So the fault is in **delivery, not the app** — the branch this entry was written to distinguish.
+Each route fails for its own reason and none is fixable in our code: Chrome treats an unknown
+scheme typed into the address bar as a search; Chrome on Android has long stopped following
+custom-scheme anchors, expecting `intent://` instead; and most QR/camera apps open only
+`http`/`https` and show anything else as plain text.
+
+Two fixes, and they are not alternatives — the first buys time for the second:
+
+- **Demo, available now:** emit the link as
+  `intent://collect?token=<token>#Intent;scheme=payals;package=com.payals.pos;end`. Works from
+  Chrome anchors and most QR readers, and changes only the URL that gets generated — no app change.
+- **Permanent:** the App Link migration (`https://<domain>/collect?token=...` plus a verified
+  `assetlinks.json`). Blocked on the domain decision, and the file itself has to be served by
+  `website/`, which is still a bare skeleton. See the ⏰ item below.
+
+Minor, noted not fixed: the app renders "süresi dolmuş" (expired) for a token that never existed,
+collapsing invalid and expired into one message. Harmless to a courier, but it points the wrong
+way during a demo.
+
+**Next task (2026-08-03): website (`website/`) — first real content.** Marketing/landing,
+appointment request, and contact. Standing on an untouched `create-next-app` skeleton (Next 16.2.9,
+React 19.2.4, Tailwind 4, TypeScript 5) whose single commit is `f2c4edd`. Not merely the
+brochure it looks like: this project is what will serve `/.well-known/assetlinks.json`, so it sits
+directly on the App Link path above.
 
 **Then:** the remaining productisation items, none of which need a domain — a real provider
 integration to replace the ParamPOS stub (waiting on the provider's sandbox contract) and a
 webhook for the partner channel to replace polling (deliberately deferred: no platform consumes
-it yet, so building it now would be a YAGNI violation). Separately, and on a clock of its own:
-`payals.com` expires 2026-08-19, and the domain decision fixes both `applicationId` and whether
+it yet, so building it now would be a YAGNI violation). Separately, and on a clock of its own —
+⏰ `payals.com` expires 2026-08-19, and the domain decision fixes both `applicationId` and whether
 deep links can become verified App Links — all three stop being reversible at the first Play
 Store upload, so that upload is the line not to cross before deciding.
 
